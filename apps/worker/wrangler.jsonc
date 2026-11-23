@@ -1,0 +1,34 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  // One Worker serves the built web app and the room API.
+  "name": "kart-party-local",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-09-22",
+  "vars": {
+    "APP_ENV": "local",
+  },
+  "assets": {
+    "directory": "../web/dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Include the bare prefix. A pattern of /api/* does not match /api.
+    "run_worker_first": ["/api", "/api/*"],
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "KART_ROOM", "class_name": "KartRoom" }],
+  },
+  // Add a later tag only for a new class. Do not delete or recreate this class.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KartRoom"] }],
+  "env": {
+    "production": {
+      "name": "kart-party",
+      "workers_dev": false,
+      "observability": { "enabled": true },
+      "routes": [{ "pattern": "kart.humza.website", "custom_domain": true }],
+      "vars": { "APP_ENV": "production" },
+      "durable_objects": {
+        "bindings": [{ "name": "KART_ROOM", "class_name": "KartRoom" }],
+      },
+    },
+  },
+}
