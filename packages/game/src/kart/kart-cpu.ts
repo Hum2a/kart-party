@@ -51,9 +51,11 @@ export function kartCpuInput(
   skill: number,
   elapsedMs: number,
   index: number,
+  /** The race's engine class factor; CPU pace scales with the class. */
+  speedFactor = 1,
 ): KartControls {
   const ring = !polylineTrack(trackId);
-  const top = (ring ? 12 : 30) * skill;
+  const top = (ring ? 12 : 30) * skill * speedFactor;
   const speed = Number.isFinite(kart.speed) ? kart.speed : 0;
   const target = aimPoint(
     trackId,

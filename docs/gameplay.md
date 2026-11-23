@@ -79,7 +79,9 @@ Karts remain ghosts to one another, so drafting is the primary pack-racing inter
 
 Item boxes have a `2.2 m` pickup radius and an `8,000 ms` per-kart cooldown.
 
-### Classic Set (Default in `RaceSession`)
+Every race chooses an item mode in `RaceSetup.items`: `off` (boxes never spawn), `classic` (the three items below on a fixed rotation), or `all` (the default: every item in the expanded engine with position-weighted luck).
+
+### Classic Set
 
 - **`turbo` (Turbo)**: `1,200 ms` boost.
 - **`shield` (Bubble shield)**: `5,000 ms` shield; absorbs one oil or projectile hit.
@@ -87,7 +89,7 @@ Item boxes have a `2.2 m` pickup radius and an `8,000 ms` per-kart cooldown.
 
 ### Expanded v2 Engine (`kartItemRulesSchema`)
 
-`@kart-party/game` also implements four additional items and position-weighted luck (`kartItemWeight`), where `standing = 0` is 1st place and `1` is last:
+The `all` mode uses these seven items with position-weighted luck (`kartItemWeight`), where `standing = 0` is 1st place and `1` is last:
 
 | Item                       | Description                                                                           | Weight Formula (`s = standing`) |
 | :------------------------- | :------------------------------------------------------------------------------------ | :------------------------------ |
@@ -113,3 +115,32 @@ Up to `7` deterministic CPU drivers can fill empty grid slots (they take finishi
 | `cpu-5` | **CPU Captain Kerb** |    `0.80`    |
 | `cpu-6` | **CPU Lappy**        |    `0.90`    |
 | `cpu-7` | **CPU Ziggy Zoom**   |    `0.86`    |
+
+Each skill is multiplied by the race's CPU difficulty (`easy 0.82`, `normal 1`, `hard 1.12`). A CPU's top speed is `30 m/s × skill` on polyline tracks (`12 m/s` on the ring), times the engine class factor.
+
+---
+
+## 6. Modes, Classes & Records
+
+### Engine Classes (`kart-driving.ts`)
+
+| Class   | Speed factor | Profile change                                            |
+| :------ | :----------- | :-------------------------------------------------------- |
+| `50cc`  | `0.82`       | `maxSpeed` and `acceleration` × factor, `power` × factor³ |
+| `100cc` | `1`          | Unchanged (absent from the race record)                   |
+| `150cc` | `1.16`       | As above                                                  |
+
+Top speed is where power meets drag, so scaling power by the cube moves top speed by the factor while grip, turning and drift rates stay the same. The room, CPU racers and on-device prediction all read the class from the race.
+
+### Grand Prix (`grand-prix.ts`)
+
+- Cups: **Starter Cup** (Party Ring → Parkside → Harbour Hairpins) and **Hairpin Cup** (Harbour Hairpins → Party Ring → Parkside).
+- Points by finishing place: `15, 12, 10, 8, 6, 4, 2, 1`; ninth and below, and DNFs, score `0`.
+- Ties on points split by most wins, then most seconds, and so on; a tie that survives every place stays tied.
+- A racer who joins mid-cup shows `–` for races they missed.
+
+### Ghosts & Records (`ghost.ts`, `apps/web/src/practice/records.ts`)
+
+- A ghost is one `[x, z, heading]` sample per `100 ms` race tick (rounded to centimetres, up to `6,000` samples), replayed by interpolation. It never touches the race.
+- Time trials (practice with `0` CPU racers) record a ghost and save it only when the run beats the stored best for that track, lap count and engine class.
+- Records keep the best race time and best single lap separately, per track, lap count and engine class, in this browser's local storage.

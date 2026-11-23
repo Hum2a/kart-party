@@ -144,3 +144,32 @@ body {
   overflow-y: auto;
   background: var(--surface);
 }
+.practice-round {
+  position: fixed;
+  z-index: 40;
+  top: max(3.2rem, calc(env(safe-area-inset-top) + 2.7rem));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.practice-split {
+  position: fixed;
+  z-index: 41;
+  top: 30%;
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+/* Dims the finished race behind the results so the standings read first. */
+.practice-results-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  backdrop-filter: blur(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .practice-results-backdrop {
+    backdrop-filter: none;
+  }
+}

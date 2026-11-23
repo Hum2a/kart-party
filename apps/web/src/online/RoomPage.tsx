@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  kartCup,
   kartTrackName,
   nicknameSchema,
   roomCodeSchema,
@@ -9,9 +10,10 @@ import {
   type RoomSettings,
   type RoomView,
 } from "@kart-party/game";
-import { Button, LinkButton, TextField } from "../ui/primitives";
+import { Button, LinkButton, Segmented, TextField } from "../ui/primitives";
+import { GrandPrixTable, Podium } from "../race/GrandPrixTable";
 import { RaceOptions } from "../race/RaceOptions";
-import { DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
+import { CupPicker, DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
 import { DriverBadge } from "../kart/DriverBadge";
@@ -225,6 +227,13 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
     setNotice(ack.ok ? "" : (ack.message ?? "Could not change the race."));
   };
   const settings = view.settings;
+  const gp = view.grandPrix;
+  const gpFinished = Boolean(gp && gp.round >= gp.total);
+  // The track the next Grand Prix race uses, while a cup is under way.
+  const gpNextTrack =
+    gp && !gpFinished && settings.mode === "grandPrix"
+      ? kartCup(gp.cupId).tracks[gp.round]
+      : undefined;
   return (
     <main className="mx-auto grid max-w-4xl gap-6 px-4 pb-16 pt-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -264,9 +273,20 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
       {view.phase === "results" && view.results ? (
         <section className="panel grid gap-4 p-5" aria-labelledby="results-heading">
           <h2 id="results-heading" className="wordmark text-3xl">
-            Results
+            {gpFinished ? "Grand Prix complete" : "Results"}
           </h2>
+          {gpFinished && view.grandPrix ? (
+            <Podium table={view.grandPrix.table} selfId={view.selfId} />
+          ) : null}
           <ResultsTable results={view.results} selfId={view.selfId} />
+          {view.grandPrix ? (
+            <GrandPrixTable
+              cupId={view.grandPrix.cupId}
+              table={view.grandPrix.table}
+              round={view.grandPrix.round}
+              selfId={view.selfId}
+            />
+          ) : null}
         </section>
       ) : null}
 
@@ -339,12 +359,34 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
         <h2 id="race-heading" className="wordmark text-2xl">
           Next race
         </h2>
+        {gpNextTrack ? (
+          <p className="text-lg font-bold">
+            {kartCup(view.grandPrix!.cupId).name} · race {view.grandPrix!.round + 1} of{" "}
+            {view.grandPrix!.total}: {kartTrackName(gpNextTrack)}
+          </p>
+        ) : null}
         {host ? (
           <>
-            <TrackPicker
-              value={settings.trackId}
-              onChange={(trackId) => change({ ...settings, trackId })}
+            <Segmented
+              label="Mode"
+              value={settings.mode}
+              onChange={(mode) => change({ ...settings, mode })}
+              options={[
+                { value: "race", label: "Single race" },
+                { value: "grandPrix", label: "Grand Prix", note: "3 races, points" },
+              ]}
             />
+            {settings.mode === "grandPrix" ? (
+              <CupPicker
+                value={settings.cupId}
+                onChange={(cupId) => change({ ...settings, cupId })}
+              />
+            ) : (
+              <TrackPicker
+                value={settings.trackId}
+                onChange={(trackId) => change({ ...settings, trackId })}
+              />
+            )}
             <RaceOptions
               value={settings}
               onChange={(rules) => change({ ...settings, ...rules })}
@@ -361,16 +403,26 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
             >
               {starting
                 ? "Starting…"
-                : view.phase === "results"
-                  ? "Race again"
-                  : "Start race"}
+                : gpNextTrack && (view.grandPrix?.round ?? 0) > 0
+                  ? `Next race: ${kartTrackName(gpNextTrack)}`
+                  : settings.mode === "grandPrix"
+                    ? gpFinished
+                      ? "New Grand Prix"
+                      : "Start Grand Prix"
+                    : view.phase === "results"
+                      ? "Race again"
+                      : "Start race"}
             </Button>
           </>
         ) : (
           <p className="text-lg">
-            {kartTrackName(settings.trackId)} · {settings.laps}{" "}
-            {settings.laps === 1 ? "lap" : "laps"} · {settings.cpu} CPU
-            {settings.cpu > 0 ? ` (${settings.cpuLevel})` : ""} · items {settings.items}
+            {settings.mode === "grandPrix"
+              ? `${kartCup(settings.cupId).name} Grand Prix`
+              : kartTrackName(settings.trackId)}{" "}
+            · {settings.laps} {settings.laps === 1 ? "lap" : "laps"} · {settings.cpu}{" "}
+            CPU
+            {settings.cpu > 0 ? ` (${settings.cpuLevel})` : ""} · items {settings.items}{" "}
+            · {settings.speedClass}cc
             <span className="mt-2 block text-muted">
               Waiting for the host to start…
             </span>

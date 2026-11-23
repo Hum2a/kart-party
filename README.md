@@ -26,7 +26,8 @@ Drift, slipstream, glide off ramps, and throw items across three procedural trac
 
 ## Highlights
 
-- **Play Solo or Party Online** — Practise against `0–7` CPU drivers with browser-saved personal bests (`/practice`), or spin up a 4-letter online room (`/play`) for up to **8 human racers** plus CPU grid fillers.
+- **Play Solo or Party Online** — Practise a single race, a three-race **Grand Prix**, or a **time trial against your own ghost** (`/practice`), or spin up a 4-letter online room (`/play`) for up to **8 human racers** plus CPU grid fillers, racing single races or a full Grand Prix.
+- **Tune Every Race** — `1–3` laps, `0–7` CPU rivals on **easy / normal / hard**, **50 / 100 / 150cc** engine classes, items **off / classic / all seven**, and eight named kart paints.
 - **One Shared Rulebook** — Practice and online rooms both run every race through [`RaceSession`](packages/game/src/session.ts). No duplicated physics loops, lap counters, or scoring paths.
 - **Instant Feel + Authoritative Rooms** — Local client prediction makes steering feel immediate while the [`KartRoom`](apps/worker/src/room.ts) Durable Object ticks at **10 Hz**, persists state to SQLite KV before acknowledging actions, and cleans up idle rooms after 6 hours.
 - **Built for Any Device** — Full keyboard, adaptive multi-touch mobile controls (thumb pad or slider, swappable sides, vibration haptics), and standard gamepad support with configurable sensitivity and deadzone.
@@ -67,9 +68,23 @@ All three courses are original layouts built from shared geometry that drives th
 </details>
 
 <details>
-<summary><strong>Items &amp; Power-Ups</strong> — Active online/practice rotation &amp; engine capabilities</summary>
+<summary><strong>Modes &amp; Progression</strong> — Grand Prix cups, ghost time trials, engine classes &amp; records</summary>
 
-Standard `RaceSession` races spawn the classic 3-item box rotation (item boxes respawn after `8 s`):
+| Mode / Option      | How it Works                                                                                                                    |
+| :----------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| **Single race**    | One race on any track, solo or online                                                                                           |
+| **Grand Prix**     | Three races in cup order (**Starter Cup**, **Hairpin Cup**) scoring `15-12-10-8-6-4-2-1`; ties split on countback; final podium |
+| **Time trial**     | Practice with `0` CPU rivals races a ghost of your best run, with a split at every lap; a new best saves a new ghost            |
+| **Engine class**   | `50cc` (`0.82×` top speed), `100cc` (default), `150cc` (`1.16×`); power scales with the cube so grip and turning stay the same  |
+| **CPU difficulty** | **Easy** `0.82×`, **Normal** `1×`, **Hard** `1.12×` pace on each CPU's personal skill                                           |
+| **Records**        | Best race and best single lap per track, lap count and engine class, saved in this browser                                      |
+
+</details>
+
+<details>
+<summary><strong>Items &amp; Power-Ups</strong> — Off, classic or all seven, with catch-up luck</summary>
+
+Races choose an item mode: **Off**, **Classic**, or **All** (the default). Classic is the three-item rotation below (item boxes respawn after `8 s`):
 
 | Item              | Effect                                       | Duration / Behaviour                                  |
 | :---------------- | :------------------------------------------- | :---------------------------------------------------- |
@@ -78,7 +93,7 @@ Standard `RaceSession` races spawn the classic 3-item box rotation (item boxes r
 | **Oil Slick**     | Drops a hazard `3 m` behind your kart        | Persists for `8,000 ms`; slows victims for `1,600 ms` |
 
 > [!NOTE]
-> [`packages/game`](packages/game/src/kart/kart-powers.ts) also implements the **v2 item & projectile ruleset** (`Tennis ball` wall-bouncing shots, timed `Bomb` blasts, `Homing bolt` course-following locks, `Treats boost`, and position-weighted item luck) via `kartItemRulesSchema`. See [docs/gameplay.md](docs/gameplay.md) for full tuning details.
+> **All** adds the [v2 item & projectile ruleset](packages/game/src/kart/kart-powers.ts): `Tennis ball` wall-bouncing shots, timed `Bomb` blasts, `Homing bolt` course-following locks and `Treats boost`, with position-weighted luck that hands catch-up items to racers at the back. See [docs/gameplay.md](docs/gameplay.md) for full tuning details.
 
 </details>
 
@@ -96,7 +111,7 @@ Every driver is a low-poly procedural rig built in Three.js using your screen pa
 | `dj`     | **DJ**             | Big headphones        |
 | `bandit` | **Bandit**         | Bandana and goggles   |
 
-Need to fill out a grid? Add `0–7` CPU drivers (**CPU Turbo Tess**, **CPU Drift Dev**, **CPU Mini Max**, **CPU Bonnie Boost**, **CPU Captain Kerb**, **CPU Lappy**, **CPU Ziggy Zoom**), each with deterministic route-lookahead steering and staggered skill levels (`0.80–0.95`).
+Need to fill out a grid? Add `0–7` CPU drivers (**CPU Turbo Tess**, **CPU Drift Dev**, **CPU Mini Max**, **CPU Bonnie Boost**, **CPU Captain Kerb**, **CPU Lappy**, **CPU Ziggy Zoom**), each with deterministic route-lookahead steering and staggered skill levels (`0.80–0.95`), scaled by the race's difficulty (easy, normal or hard) and engine class.
 
 </details>
 

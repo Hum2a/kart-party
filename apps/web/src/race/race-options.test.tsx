@@ -4,7 +4,13 @@ import { RaceOptions, type RaceRules } from "./RaceOptions";
 import { PaintPicker } from "./pickers";
 import { DriverBadge } from "../kart/DriverBadge";
 
-const rules: RaceRules = { laps: 3, cpu: 3, cpuLevel: "normal", items: "all" };
+const rules: RaceRules = {
+  laps: 3,
+  cpu: 3,
+  cpuLevel: "normal",
+  items: "all",
+  speedClass: "100",
+};
 
 it("changes items, CPU difficulty and laps, and explains the item set", () => {
   const change = vi.fn();
@@ -12,6 +18,8 @@ it("changes items, CPU difficulty and laps, and explains the item set", () => {
   expect(screen.getByText("All seven, catch-up luck")).toBeTruthy();
   fireEvent.click(screen.getByLabelText("Classic"));
   expect(change).toHaveBeenLastCalledWith({ ...rules, items: "classic" });
+  fireEvent.click(screen.getByLabelText(/150cc/));
+  expect(change).toHaveBeenLastCalledWith({ ...rules, speedClass: "150" });
   fireEvent.click(screen.getByLabelText("Hard"));
   expect(change).toHaveBeenLastCalledWith({ ...rules, cpuLevel: "hard" });
   fireEvent.click(

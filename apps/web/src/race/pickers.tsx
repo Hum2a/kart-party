@@ -1,10 +1,13 @@
 import { motion } from "motion/react";
 import {
   driverStyles,
+  kartCups,
+  kartTrackName,
   kartPaints,
   kartTrackCatalogue,
   type DriverStyle,
   type KartPaint,
+  type KartCupId,
   type KartTrackId,
 } from "@kart-party/game";
 import { DriverEmblem } from "../kart/DriverBadge";
@@ -140,6 +143,53 @@ export function PaintPicker({
               style={{ background: paint.hex }}
             />
             {paint.name}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export function CupPicker({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: KartCupId;
+  onChange: (cupId: KartCupId) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <fieldset className="grid gap-2" disabled={disabled}>
+      <legend className="mb-1.5 text-sm font-bold uppercase tracking-wide text-muted">
+        Cup
+      </legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {kartCups.map((cup) => (
+          <label
+            key={cup.id}
+            className="motion-press panel grid cursor-pointer touch-manipulation gap-2 p-3 has-checked:border-accent has-checked:ring-2 has-checked:ring-accent has-disabled:cursor-not-allowed has-disabled:opacity-70"
+          >
+            <input
+              type="radio"
+              name="cup"
+              className="sr-only"
+              checked={value === cup.id}
+              onChange={() => onChange(cup.id)}
+            />
+            <strong className="text-lg">{cup.name}</strong>
+            <span className="flex gap-2" aria-hidden="true">
+              {cup.tracks.map((trackId, i) => (
+                <TrackPreview
+                  key={`${trackId}-${i}`}
+                  trackId={trackId}
+                  className="size-16"
+                />
+              ))}
+            </span>
+            <span className="text-sm text-muted">
+              {cup.tracks.map((trackId) => kartTrackName(trackId)).join(" → ")}
+            </span>
           </label>
         ))}
       </div>

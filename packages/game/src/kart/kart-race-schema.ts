@@ -111,6 +111,7 @@ export const kartRaceSchema = z
     opponentsEnabled: z.boolean().optional(),
     effectsEnabled: z.boolean().optional(),
     look: kartLookNameSchema.optional().catch(undefined),
+    speedClass: z.enum(["50", "100", "150"]).optional(),
     // Host driving-feel choices; absent means the defaults in kart-settings.ts.
     settings: kartSettingsSchema.optional(),
     spectator: kartSpectatorSchema.optional().catch(undefined),

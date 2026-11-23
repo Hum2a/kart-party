@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RaceSession,
+  createGhostRecorder,
+  ghostDriver,
+  ghostSplit,
   kartTickMs,
   raceResults,
+  countdownMs,
   type DriverStyle,
   type KartFinish,
+  type KartGhost,
   type KartInput,
   type KartLaps,
   type KartRaceView,
@@ -13,9 +18,8 @@ import {
   type RaceResult,
   type RoomSettings,
 } from "@kart-party/game";
-import { countdownMs } from "@kart-party/game";
 import type { RaceStage } from "../kart/race-stage";
-import { recordBest, type BestRecord } from "./records";
+import { readGhost, recordBest, saveGhost, type BestRecord } from "./records";
 
 export const practicePlayerId = "p-practice01";
 
@@ -27,6 +31,7 @@ export type PracticeSetup = {
   cpu: number;
   cpuLevel: RoomSettings["cpuLevel"];
   items: RoomSettings["items"];
+  speedClass: RoomSettings["speedClass"];
   paint: KartPaint;
 };
 
@@ -34,15 +39,29 @@ export type PracticeOutcome = {
   results: RaceResult[];
   best?: BestRecord;
   improved: boolean;
+  lapImproved: boolean;
+  /** A time trial that beat the stored best saves a new ghost. */
+  ghostSaved: boolean;
 };
+
+/** The split shown when a lap ends in a time trial with a ghost. */
+export type LapSplit = { lap: number; gapMs: number };
+
+/** Adds the ghost to the karts drawn around the racer, never to the standings. */
+function withGhost(view: KartRaceView, ghost: KartGhost | undefined): KartRaceView {
+  const row = ghost ? ghostDriver(ghost, view.elapsedMs) : undefined;
+  if (!row) return view;
+  return { ...view, nearby: [...(view.nearby ?? []).slice(0, 7), row] };
+}
 
 /**
  * Offline practice. The same RaceSession the online room uses runs here, on
  * this device's clock, ticking ten times a second; the racer's own kart is
- * still drawn from local prediction, exactly as online.
+ * still drawn from local prediction, exactly as online. A time trial (no CPU
+ * racers) records a ghost and races against the best one saved.
  */
 export function useLocalRace(setup: PracticeSetup, run: number) {
-  const { name, trackId, laps, cpu, cpuLevel, items } = setup;
+  const { name, trackId, laps, cpu, cpuLevel, items, speedClass } = setup;
   // Keyed on values, not object identity, so a new but equal setup is the same race.
   const session = useMemo(
     () =>
@@ -54,60 +73,115 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
         cpu,
         cpuLevel,
         items,
+        speedClass,
       }),
-    [name, trackId, laps, cpu, cpuLevel, items, run],
+    [name, trackId, laps, cpu, cpuLevel, items, speedClass, run],
   );
+  const timeTrial = cpu === 0;
+  const ghost = useMemo(
+    () => (timeTrial ? readGhost({ trackId, laps, speedClass }) : undefined),
+    // A new session reloads the ghost, so beating it replaces what you race next.
+    [session],
+  );
+  const recorder = useMemo(() => createGhostRecorder(), [session]);
   const goAt = useRef(0);
   const pausedAt = useRef<number | null>(null);
+  const lapsSeen = useRef(0);
   const [phase, setPhase] = useState<RaceStage["phase"]>("grid");
   const [paused, setPaused] = useState(false);
   const [goTime, setGoTime] = useState(0);
-  const [race, setRace] = useState<KartRaceView>(() => session.view(practicePlayerId));
+  const [race, setRace] = useState<KartRaceView>(() =>
+    withGhost(session.view(practicePlayerId), ghost),
+  );
   const [outcome, setOutcome] = useState<PracticeOutcome | undefined>();
+  const [split, setSplit] = useState<LapSplit | undefined>();
 
   const elapsed = useCallback(() => Date.now() - goAt.current, []);
 
-  const settle = useCallback(() => {
-    setPhase("done");
-    const results = raceResults(session.race);
-    const mine = results.find((row) => row.playerId === practicePlayerId);
-    const record =
-      mine?.timeMs != null
-        ? recordBest(
-            { trackId: setup.trackId, laps: setup.laps },
-            mine.timeMs,
-            Date.now(),
-          )
-        : undefined;
-    setOutcome({ results, best: record?.best, improved: Boolean(record?.improved) });
-  }, [session, setup.trackId, setup.laps]);
+  const publish = useCallback(() => {
+    const view = withGhost(session.view(practicePlayerId), ghost);
+    setRace(view);
+    const self = view.participants.find((d) => d.playerId === practicePlayerId);
+    const lapsMs = self?.lapsMs ?? (self?.lapTimeMs != null ? [self.lapTimeMs] : []);
+    if (ghost && lapsMs.length > lapsSeen.current) {
+      lapsSeen.current = lapsMs.length;
+      const gapMs = ghostSplit(ghost, lapsMs.length, lapsMs.at(-1)!);
+      if (gapMs !== undefined) setSplit({ lap: lapsMs.length, gapMs });
+    }
+  }, [session, ghost]);
+
+  const settle = useCallback(
+    (lapsMs: readonly number[] = []) => {
+      setPhase("done");
+      const results = raceResults(session.race);
+      const mine = results.find((row) => row.playerId === practicePlayerId);
+      const key = { trackId, laps, speedClass };
+      const record =
+        mine?.timeMs != null
+          ? recordBest(key, mine.timeMs, Date.now(), undefined, lapsMs)
+          : undefined;
+      let ghostSaved = false;
+      if (timeTrial && mine?.timeMs != null && record?.improved) {
+        try {
+          saveGhost(
+            recorder.finish(
+              {
+                trackId,
+                laps,
+                speedClass,
+                timeMs: mine.timeMs,
+                lapsMs: lapsMs.length ? [...lapsMs] : [mine.timeMs],
+              },
+              Date.now(),
+            ),
+          );
+          ghostSaved = true;
+        } catch {
+          // A run too long to replay keeps its time but saves no ghost.
+        }
+      }
+      setOutcome({
+        results,
+        best: record?.best,
+        improved: Boolean(record?.improved),
+        lapImproved: Boolean(record?.lapImproved),
+        ghostSaved,
+      });
+    },
+    [session, trackId, laps, speedClass, timeTrial, recorder],
+  );
 
   // A fresh run starts with a three-second countdown on the grid.
   useEffect(() => {
     const now = Date.now();
     goAt.current = now + countdownMs;
     pausedAt.current = null;
+    lapsSeen.current = 0;
+    recorder.reset();
     setGoTime(goAt.current);
     setPhase("grid");
     setPaused(false);
     setOutcome(undefined);
-    setRace(session.view(practicePlayerId));
+    setSplit(undefined);
+    setRace(withGhost(session.view(practicePlayerId), ghost));
     const start = setTimeout(() => setPhase("racing"), countdownMs);
     return () => clearTimeout(start);
-  }, [session]);
+  }, [session, ghost, recorder]);
 
   useEffect(() => {
     if (phase !== "racing" || paused) return;
     const timer = setInterval(() => {
       const next = session.tick(elapsed());
-      setRace(session.view(practicePlayerId));
+      const self = next.drivers.find((d) => d.playerId === practicePlayerId);
+      if (self && self.status === "RACING") recorder.sample(next.elapsedMs, self);
+      publish();
       if (next.ended) {
         clearInterval(timer);
-        settle();
+        settle(self?.lapTimes ?? []);
       }
     }, kartTickMs);
     return () => clearInterval(timer);
-  }, [phase, paused, session, elapsed, settle]);
+  }, [phase, paused, session, elapsed, settle, publish, recorder]);
 
   const pause = useCallback(
     (value: boolean) => {
@@ -135,6 +209,8 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
     outcome,
     paused,
     pause,
+    ghost,
+    split,
     onInput: useCallback(
       (input: KartInput) => {
         if (phase === "racing" && !paused)
@@ -145,27 +221,27 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
     onFinish: useCallback(
       (report: KartFinish) => {
         const result = session.finish(practicePlayerId, report);
-        setRace(session.view(practicePlayerId));
-        if (result.ok && session.race.ended) settle();
+        publish();
+        if (result.ok && session.race.ended) settle(report.lapsMs);
         return result;
       },
-      [session, settle],
+      [session, settle, publish],
     ),
     useItem: useCallback(
       (raceId: string) => {
         const result = session.useItem(practicePlayerId, raceId, elapsed());
-        setRace(session.view(practicePlayerId));
+        publish();
         return result;
       },
-      [session, elapsed],
+      [session, elapsed, publish],
     ),
     recover: useCallback(
       (raceId: string) => {
         const result = session.recover(practicePlayerId, raceId, elapsed());
-        setRace(session.view(practicePlayerId));
+        publish();
         return result;
       },
-      [session, elapsed],
+      [session, elapsed, publish],
     ),
   };
 }

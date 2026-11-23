@@ -67,6 +67,31 @@ export const soloDriving: DrivingProfile = {
   lowSpeedTurnRate: 2.4,
   driftTurnBase: 0.25,
 };
+/** Engine classes. 100 is the tuned default; the others scale top speed. */
+export const kartSpeedClasses = ["50", "100", "150"] as const;
+export type KartSpeedClass = (typeof kartSpeedClasses)[number];
+export const kartSpeedFactor: Record<KartSpeedClass, number> = {
+  "50": 0.82,
+  "100": 1,
+  "150": 1.16,
+};
+/**
+ * The same kart at another engine class. Top speed is where power meets drag,
+ * so power scales with the cube of the speed factor; grip and turning stay put.
+ */
+export function classProfile(
+  profile: DrivingProfile,
+  speedClass: KartSpeedClass | undefined,
+): DrivingProfile {
+  const factor = kartSpeedFactor[speedClass ?? "100"];
+  if (factor === 1) return profile;
+  return {
+    ...profile,
+    maxSpeed: profile.maxSpeed * factor,
+    acceleration: profile.acceleration * factor,
+    power: profile.power * factor ** 3,
+  };
+}
 export const createDrivingBody = (x = 0, z = 0, heading = 0): DrivingBody => ({
   x,
   z,

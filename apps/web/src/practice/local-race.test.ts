@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useLocalRace, practicePlayerId, type PracticeSetup } from "./local-race";
+import { readGhost } from "./records";
 
 const setup: PracticeSetup = {
   name: "Ada",
@@ -10,6 +11,7 @@ const setup: PracticeSetup = {
   cpu: 2,
   cpuLevel: "normal",
   items: "all",
+  speedClass: "100",
   paint: "lagoon",
 };
 
@@ -75,4 +77,63 @@ it("settles results and records a personal best when the racer finishes", () => 
     place: 1,
   });
   expect(result.current.outcome?.improved).toBe(true);
+});
+
+it("saves a ghost from an improved time trial and races against it next time", () => {
+  const trial = { ...setup, cpu: 0, items: "off" as const };
+  const first = renderHook(() => useLocalRace(trial, 4));
+  act(() => vi.advanceTimersByTime(3_000));
+  const raceId = first.result.current.race.raceId;
+  for (let i = 0; i < 20; i++)
+    act(() => {
+      first.result.current.onInput({
+        raceId,
+        sequence: i + 1,
+        steer: 0,
+        gas: true,
+        brake: false,
+        drift: false,
+      });
+      vi.advanceTimersByTime(100);
+    });
+  act(() => {
+    first.result.current.onFinish({ raceId, elapsedMs: 40_000, lapsMs: [40_000] });
+  });
+  expect(first.result.current.outcome).toMatchObject({
+    improved: true,
+    ghostSaved: true,
+  });
+  const ghost = readGhost({ trackId: "parkside-v1", laps: 1, speedClass: "100" })!;
+  expect(ghost.timeMs).toBe(40_000);
+  expect(ghost.poses.length).toBeGreaterThan(30);
+  first.unmount();
+
+  const second = renderHook(() => useLocalRace(trial, 5));
+  expect(second.result.current.ghost?.timeMs).toBe(40_000);
+  act(() => vi.advanceTimersByTime(3_000));
+  act(() => vi.advanceTimersByTime(1_000));
+  const nearby = second.result.current.race.nearby ?? [];
+  expect(nearby.map((d) => d.playerId)).toContain("ghost-best");
+  // A slower finish keeps the old ghost and best.
+  const raceId2 = second.result.current.race.raceId;
+  act(() => {
+    second.result.current.onFinish({
+      raceId: raceId2,
+      elapsedMs: 45_000,
+      lapsMs: [45_000],
+    });
+  });
+  expect(second.result.current.outcome).toMatchObject({
+    improved: false,
+    ghostSaved: false,
+  });
+  expect(second.result.current.split).toEqual({ lap: 1, gapMs: 5_000 });
+  expect(
+    readGhost({ trackId: "parkside-v1", laps: 1, speedClass: "100" })!.timeMs,
+  ).toBe(40_000);
+});
+
+it("never shows a ghost when CPU racers are on the grid", () => {
+  const { result } = renderHook(() => useLocalRace(setup, 6));
+  expect(result.current.ghost).toBeUndefined();
 });

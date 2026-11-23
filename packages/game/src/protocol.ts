@@ -13,6 +13,8 @@ import {
 } from "./kart/kart-driver.ts";
 import { kartCpuLevels } from "./kart/kart-cpu.ts";
 import { raceItemModes } from "./session.ts";
+import { kartSpeedClasses } from "./kart/kart-driving.ts";
+import { grandPrixRowSchema, kartCupIdSchema } from "./grand-prix.ts";
 import { kartTrackIdSchema } from "./kart/kart-tracks.ts";
 import { kartTrackId } from "./kart/kart-race-schema.ts";
 
@@ -47,6 +49,10 @@ export const roomSettingsSchema = z
     cpu: kartCpuCountSchema,
     cpuLevel: z.enum(kartCpuLevels),
     items: z.enum(raceItemModes),
+    speedClass: z.enum(kartSpeedClasses),
+    /** A single race on `trackId`, or a Grand Prix over every track of `cupId`. */
+    mode: z.enum(["race", "grandPrix"]),
+    cupId: kartCupIdSchema,
   })
   .strict();
 export type RoomSettings = z.infer<typeof roomSettingsSchema>;
@@ -56,6 +62,9 @@ export const defaultRoomSettings: RoomSettings = {
   cpu: 3,
   cpuLevel: "normal",
   items: "all",
+  speedClass: "100",
+  mode: "race",
+  cupId: "starter-cup",
 };
 
 export const roomPhaseSchema = z.enum(["lobby", "countdown", "racing", "results"]);
@@ -94,6 +103,17 @@ export const roomViewSchema = z
     /** Server clock time when GO happens; present during the countdown and race. */
     goAt: z.number().int().nonnegative().optional(),
     raceId: z.string().min(1).max(80).optional(),
+    /** Present while a Grand Prix is running or just finished. */
+    grandPrix: z
+      .object({
+        cupId: kartCupIdSchema,
+        /** Races finished so far. */
+        round: z.number().int().nonnegative(),
+        total: z.number().int().positive(),
+        table: z.array(grandPrixRowSchema).max(maxRoomPlayers + 8),
+      })
+      .strict()
+      .optional(),
     results: z
       .array(raceResultSchema)
       .max(maxRoomPlayers + 8)

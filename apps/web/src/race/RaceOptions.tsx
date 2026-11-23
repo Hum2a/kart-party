@@ -2,7 +2,10 @@ import type { RoomSettings } from "@kart-party/game";
 import { Segmented } from "../ui/primitives";
 
 /** The race rules shared by practice and online rooms, apart from the track. */
-export type RaceRules = Pick<RoomSettings, "laps" | "cpu" | "cpuLevel" | "items">;
+export type RaceRules = Pick<
+  RoomSettings,
+  "laps" | "cpu" | "cpuLevel" | "items" | "speedClass"
+>;
 
 const itemNotes = {
   off: "No item boxes",
@@ -50,6 +53,16 @@ export function RaceOptions({
           { value: "easy", label: "Easy" },
           { value: "normal", label: "Normal" },
           { value: "hard", label: "Hard" },
+        ]}
+      />
+      <Segmented
+        label="Engine class"
+        value={value.speedClass}
+        onChange={(speedClass) => onChange({ ...value, speedClass })}
+        options={[
+          { value: "50", label: "50cc", note: "Gentle" },
+          { value: "100", label: "100cc" },
+          { value: "150", label: "150cc", note: "Fast" },
         ]}
       />
       <div className="grid gap-1.5">

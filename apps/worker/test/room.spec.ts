@@ -59,7 +59,16 @@ async function connect(code: string): Promise<Client> {
         setTimeout(resolve, 50);
       });
     }
-    throw new Error(`Timed out waiting for ${type}`);
+    const recent = messages
+      .slice(-6)
+      .map((m) =>
+        m.type === "room"
+          ? `room:${m.room.phase}:${m.room.grandPrix?.round ?? "-"}`
+          : m.type === "ack"
+            ? `ack:${m.requestId}:${m.ok}:${m.message ?? ""}`
+            : m.type,
+      );
+    throw new Error(`Timed out waiting for ${type}; last: ${recent.join(", ")}`);
   };
   return { ws, messages, next, send: (value) => ws.send(JSON.stringify(value)) };
 }
@@ -130,6 +139,9 @@ describe("KartRoom", () => {
         cpu: 0,
         cpuLevel: "normal",
         items: "off",
+        speedClass: "100",
+        mode: "race",
+        cupId: "starter-cup",
       },
     });
     expect(await bo.client.next("ack")).toMatchObject({ requestId: "s2", ok: false });
@@ -142,6 +154,9 @@ describe("KartRoom", () => {
         cpu: 0,
         cpuLevel: "normal",
         items: "off",
+        speedClass: "100",
+        mode: "race",
+        cupId: "starter-cup",
       },
     });
     expect(await ada.client.next("ack")).toMatchObject({ requestId: "s3", ok: true });
@@ -155,6 +170,9 @@ describe("KartRoom", () => {
       cpu: 0,
       cpuLevel: "normal",
       items: "off",
+      speedClass: "100",
+      mode: "race",
+      cupId: "starter-cup",
     });
     ada.client.send({
       type: "settings",
@@ -165,6 +183,9 @@ describe("KartRoom", () => {
         cpu: 0,
         cpuLevel: "normal",
         items: "off",
+        speedClass: "100",
+        mode: "race",
+        cupId: "starter-cup",
       },
     });
     expect(await ada.client.next("error")).toMatchObject({ code: "bad-request" });
@@ -183,6 +204,9 @@ describe("KartRoom", () => {
         cpu: 1,
         cpuLevel: "hard",
         items: "all",
+        speedClass: "100",
+        mode: "race",
+        cupId: "starter-cup",
       },
     });
     await ada.client.next("ack", (m) => m.requestId === "set");
@@ -320,6 +344,82 @@ describe("phase 1 options", () => {
       cpu: 5,
       cpuLevel: "normal",
       items: "off",
+      speedClass: "100",
+      mode: "race",
+      cupId: "starter-cup",
     });
+  });
+});
+
+describe("Grand Prix rooms", () => {
+  it("runs the cup's tracks in order and keeps a running table", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    ada.client.send({
+      type: "settings",
+      requestId: "gp",
+      settings: {
+        trackId: "party-ring-v1",
+        laps: 1,
+        cpu: 1,
+        cpuLevel: "normal",
+        items: "off",
+        speedClass: "100",
+        mode: "grandPrix",
+        cupId: "reverse-cup",
+      },
+    });
+    await ada.client.next("ack", (m) => m.requestId === "gp");
+    const stub = roomStub(code);
+    const tracks: string[] = [];
+    for (let round = 1; round <= 3; round++) {
+      ada.client.send({ type: "start", requestId: `start-${round}` });
+      expect(
+        await ada.client.next("ack", (m) => m.requestId === `start-${round}`),
+      ).toMatchObject({ ok: true });
+      // The room broadcasts the countdown and the grid before it acknowledges the start.
+      const racing = [...ada.client.messages]
+        .reverse()
+        .find(
+          (m): m is Extract<ServerMessage, { type: "room" }> =>
+            m.type === "room" && m.room.phase === "countdown",
+        )!;
+      const grid = [...ada.client.messages]
+        .reverse()
+        .find(
+          (m): m is Extract<ServerMessage, { type: "race" }> =>
+            m.type === "race" && m.race.raceId === racing.room.raceId,
+        )!;
+      tracks.push(grid.race.trackId);
+      await runInDurableObject(stub, (instance: KartRoom) => {
+        (instance as unknown as { meta: { goAt: number } }).meta.goAt =
+          Date.now() - 1_000;
+      });
+      await runDurableObjectAlarm(stub);
+      ada.client.send({
+        type: "finish",
+        requestId: `finish-${round}`,
+        report: { raceId: racing.room.raceId!, elapsedMs: 30_000, lapsMs: [30_000] },
+      });
+      // The room settles and broadcasts results before acknowledging the finish.
+      const results = await ada.client.next(
+        "room",
+        (m) => m.room.phase === "results" && m.room.grandPrix?.round === round,
+      );
+      expect(
+        await ada.client.next("ack", (m) => m.requestId === `finish-${round}`),
+      ).toMatchObject({ ok: true });
+      expect(results.room.grandPrix).toMatchObject({ cupId: "reverse-cup", total: 3 });
+      expect(results.room.grandPrix!.table).toHaveLength(2);
+    }
+    expect(tracks).toEqual(["harbour-v1", "party-ring-v1", "parkside-v1"]);
+
+    // Starting again after the final race begins a new Grand Prix.
+    ada.client.send({ type: "start", requestId: "again" });
+    const fresh = await ada.client.next(
+      "room",
+      (m) => m.room.phase === "countdown" && m.room.grandPrix?.round === 0,
+    );
+    expect(fresh.room.grandPrix!.table).toEqual([]);
   });
 });

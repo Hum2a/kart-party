@@ -2,6 +2,7 @@ import {
   createDrivingBody,
   advanceKartLap,
   polylineTrack,
+  classProfile,
   type KartInput,
   type KartFinish,
   type KartRollback,
@@ -77,7 +78,7 @@ const ringIndex = indexWalls(ringWalls);
 function environment(race: KartRaceView): Environment {
   const course = race.trackId === kartTrackId ? undefined : polylineTrack(race.trackId);
   return {
-    profile: course ? soloDriving : ringDriving,
+    profile: classProfile(course ? soloDriving : ringDriving, race.speedClass),
     walls: course ? course.nearbyWalls : ringIndex,
     offRoad: course ? (x, z) => course.surfaceAt(x, z) !== "road" : () => false,
     features: race.courseEnabled ? (course?.course ?? ringCourse) : [],

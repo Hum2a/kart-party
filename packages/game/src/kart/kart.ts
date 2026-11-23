@@ -82,6 +82,9 @@ import {
   soloDriving,
   ringWalls,
   indexWalls,
+  classProfile,
+  kartSpeedFactor,
+  type KartSpeedClass,
   type DrivingBody,
 } from "./kart-driving.ts";
 
@@ -156,6 +159,8 @@ export type KartRace = {
   oils?: OilSlick[];
   physicsVersion?: "arcade-v2";
   handling?: KartHandling;
+  /** Engine class; absent is 100. */
+  speedClass?: KartSpeedClass;
   contactVersion?: 1;
   contactHistory?: KartContactHistoryEntry[];
   trackId?: KartTrackId;
@@ -189,6 +194,7 @@ export function createKartRace(
     seedGrid?: boolean;
     trackId?: KartTrackId;
     handling?: KartHandling;
+    speedClass?: KartSpeedClass;
     itemRules?: KartItemRules;
     laps?: KartLaps;
     /** CPU racers to add behind the guests (0–7). */
@@ -253,6 +259,9 @@ export function createKartRace(
     ...(laps > 1 ? { laps } : {}),
     physicsVersion: "arcade-v2",
     ...(options.handling ? { handling: options.handling } : {}),
+    ...(options.speedClass && options.speedClass !== "100"
+      ? { speedClass: options.speedClass }
+      : {}),
     contactVersion: 1,
     contactHistory: [],
     courseEnabled: polyline,
@@ -910,11 +919,18 @@ function stepDriver(
   const dt = ms / 1000;
   const track = polylineTrack(trackId);
   const polyline = Boolean(track);
-  const profile = polyline ? soloDriving : ringDriving;
+  const profile = classProfile(polyline ? soloDriving : ringDriving, race?.speedClass);
   const nearbyWalls = track?.nearbyWalls ?? nearbyRingWalls;
   if (d.cpu && d.status === "RACING") {
     // The room drives CPU karts from the route, step by step.
-    d.input = kartCpuInput(d, trackId, d.skill ?? 0.88, elapsed, d.number);
+    d.input = kartCpuInput(
+      d,
+      trackId,
+      d.skill ?? 0.88,
+      elapsed,
+      d.number,
+      kartSpeedFactor[race?.speedClass ?? "100"],
+    );
     d.inputUntil = elapsed + 400;
     // A CPU kart stuck against a barrier goes back to its last safe point.
     d.stuckMs = Math.abs(d.speed) < 1.5 ? (d.stuckMs ?? 0) + ms : 0;
@@ -1234,6 +1250,7 @@ export function projectKartRace(
       ? { effectsEnabled: race.effectsEnabled }
       : {}),
     ...(race.look !== undefined ? { look: race.look } : {}),
+    ...(race.speedClass ? { speedClass: race.speedClass } : {}),
     ...(race.stageMode
       ? {
           spectator: {

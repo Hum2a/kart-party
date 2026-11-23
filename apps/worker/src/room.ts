@@ -6,6 +6,10 @@ import {
   countdownMs,
   defaultDriverStyle,
   defaultKartPaint,
+  grandPrixDone,
+  grandPrixNextTrack,
+  grandPrixTable,
+  kartCup,
   roomSettingsSchema,
   defaultRoomSettings,
   kartTickMs,
@@ -16,6 +20,7 @@ import {
   takeToken,
   type ClientMessage,
   type DriverStyle,
+  type GrandPrixState,
   type KartPaint,
   type KartRace,
   type RateBucket,
@@ -45,6 +50,8 @@ type Meta = {
   raceId?: string;
   raceCount: number;
   results?: RaceResult[];
+  /** The Grand Prix in progress or just finished, when the room is in that mode. */
+  grandPrix?: GrandPrixState;
 };
 type StoredPlayer = {
   playerId: string;
@@ -413,9 +420,13 @@ export class KartRoom extends DurableObject<Env> {
   private changeSettings(playerId: string, settings: RoomSettings) {
     const refusal = this.requireHost(playerId);
     if (refusal) return refusal;
-    if (this.meta!.phase !== "lobby")
+    if (this.meta!.phase !== "lobby" && this.meta!.phase !== "results")
       return { ok: false as const, message: "Change the race between races." };
-    this.meta!.settings = settings;
+    const meta = this.meta!;
+    // A new mode or cup starts a fresh Grand Prix; other changes carry on.
+    if (settings.mode !== meta.settings.mode || settings.cupId !== meta.settings.cupId)
+      meta.grandPrix = undefined;
+    meta.settings = settings;
     this.saveMeta();
     this.broadcastRoom();
     return { ok: true as const };
@@ -445,13 +456,24 @@ export class KartRoom extends DurableObject<Env> {
     meta.goAt = now + countdownMs;
     meta.phase = "countdown";
     meta.results = undefined;
+    let trackId = meta.settings.trackId;
+    if (meta.settings.mode === "grandPrix") {
+      if (
+        !meta.grandPrix ||
+        grandPrixDone(meta.grandPrix) ||
+        meta.grandPrix.cupId !== meta.settings.cupId
+      )
+        meta.grandPrix = { cupId: meta.settings.cupId, races: [] };
+      trackId = grandPrixNextTrack(meta.grandPrix)!;
+    } else meta.grandPrix = undefined;
     this.session = RaceSession.create({
       raceId: meta.raceId,
       players: racers.map((p) => ({ playerId: p.playerId, name: p.name })),
-      trackId: meta.settings.trackId,
+      trackId,
       laps: meta.settings.laps,
       cpu: meta.settings.cpu,
       cpuLevel: meta.settings.cpuLevel,
+      speedClass: meta.settings.speedClass,
       items: meta.settings.items,
     });
     this.ticks = 0;
@@ -546,6 +568,7 @@ export class KartRoom extends DurableObject<Env> {
     const race = this.session!.race;
     meta.phase = "results";
     meta.results = raceResults(race);
+    meta.grandPrix?.races.push(meta.results);
     const winner = meta.results.find(
       (row) => !row.cpu && row.place === 1 && row.timeMs !== null,
     );
@@ -585,6 +608,16 @@ export class KartRoom extends DurableObject<Env> {
       ...(meta.goAt !== undefined && meta.phase !== "lobby" ? { goAt: meta.goAt } : {}),
       ...(meta.raceId && meta.phase !== "lobby" ? { raceId: meta.raceId } : {}),
       ...(meta.results ? { results: meta.results } : {}),
+      ...(meta.grandPrix
+        ? {
+            grandPrix: {
+              cupId: meta.grandPrix.cupId,
+              round: meta.grandPrix.races.length,
+              total: kartCup(meta.grandPrix.cupId).tracks.length,
+              table: grandPrixTable(meta.grandPrix.races),
+            },
+          }
+        : {}),
     };
   }
 

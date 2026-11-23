@@ -17,6 +17,7 @@ import {
 } from "./kart/kart-race-schema.ts";
 import { kartFinishSchema } from "./kart/kart-rollback-schema.ts";
 import { isKartCpuId, type KartCpuLevel } from "./kart/kart-cpu.ts";
+import type { KartSpeedClass } from "./kart/kart-driving.ts";
 import { kartItemSchema, type KartItem } from "./kart/kart-powers.ts";
 import type { KartItemRules } from "./kart/kart-item-rules.ts";
 import type { RaceResult } from "./protocol.ts";
@@ -43,6 +44,7 @@ export type RaceSetup = {
   laps: KartLaps;
   cpu: number;
   cpuLevel?: KartCpuLevel;
+  speedClass?: KartSpeedClass;
   /** Older callers pass a boolean: true is every item, false is none. */
   items: RaceItemMode | boolean;
 };
@@ -79,6 +81,7 @@ export class RaceSession {
       laps: setup.laps,
       cpu: setup.cpu,
       cpuLevel: setup.cpuLevel ?? "normal",
+      speedClass: setup.speedClass ?? "100",
       itemRules: items === "all" ? allItemRules : classicItemRules,
     });
     // The first throttle after GO can earn a start boost.
