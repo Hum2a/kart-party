@@ -6,13 +6,22 @@ import {
   nicknameSchema,
   type DriverStyle,
   type KartLaps,
+  type KartPaint,
   type KartTrackId,
 } from "@kart-party/game";
-import { Button, LinkButton, Segmented, TextField } from "../ui/primitives";
-import { DriverPicker, TrackPicker } from "../race/pickers";
+import { Button, LinkButton, TextField } from "../ui/primitives";
+import { RaceOptions, type RaceRules } from "../race/RaceOptions";
+import { DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
-import { saveDriver, saveName, savedDriver, savedName } from "../live/identity";
+import {
+  saveDriver,
+  saveName,
+  savePaint,
+  savedDriver,
+  savedName,
+  savedPaint,
+} from "../live/identity";
 import { useLocalRace, practicePlayerId, type PracticeSetup } from "./local-race";
 import { formatRaceTime, readBest } from "./records";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
@@ -44,9 +53,14 @@ function PracticeSetupForm({ onStart }: { onStart: (setup: PracticeSetup) => voi
   const [name, setName] = useState(() => savedName() || "Racer");
   const [driver, setDriver] = useState<DriverStyle>(() => savedDriver() ?? "racer");
   const [trackId, setTrackId] = useState<KartTrackId>(kartTrackId);
-  const [laps, setLaps] = useState<KartLaps>(3);
-  const [cpu, setCpu] = useState(3);
-  const [items, setItems] = useState(true);
+  const [paint, setPaint] = useState<KartPaint>(() => savedPaint() ?? "flame");
+  const [rules, setRules] = useState<RaceRules>({
+    laps: 3,
+    cpu: 3,
+    cpuLevel: "normal",
+    items: "all",
+  });
+  const laps: KartLaps = rules.laps;
   const [error, setError] = useState("");
   const best = readBest({ trackId, laps });
   return (
@@ -80,7 +94,8 @@ function PracticeSetupForm({ onStart }: { onStart: (setup: PracticeSetup) => voi
           }
           saveName(parsed.data);
           saveDriver(driver);
-          onStart({ name: parsed.data, driver, trackId, laps, cpu, items });
+          savePaint(paint);
+          onStart({ name: parsed.data, driver, paint, trackId, ...rules });
         }}
       >
         <TextField
@@ -95,37 +110,9 @@ function PracticeSetupForm({ onStart }: { onStart: (setup: PracticeSetup) => voi
           error={error}
         />
         <DriverPicker value={driver} onChange={setDriver} />
+        <PaintPicker value={paint} onChange={setPaint} />
         <TrackPicker value={trackId} onChange={setTrackId} />
-        <div className="grid gap-5 sm:grid-cols-3">
-          <Segmented
-            label="Laps"
-            value={laps}
-            onChange={setLaps}
-            options={[
-              { value: 1, label: "1" },
-              { value: 2, label: "2" },
-              { value: 3, label: "3" },
-            ]}
-          />
-          <Segmented
-            label="CPU racers"
-            value={cpu}
-            onChange={setCpu}
-            options={[0, 1, 3, 5, 7].map((n) => ({
-              value: n,
-              label: n === 0 ? "Time trial" : String(n),
-            }))}
-          />
-          <Segmented
-            label="Items"
-            value={items ? "on" : "off"}
-            onChange={(value) => setItems(value === "on")}
-            options={[
-              { value: "on", label: "On" },
-              { value: "off", label: "Off" },
-            ]}
-          />
-        </div>
+        <RaceOptions value={rules} onChange={setRules} timeTrialLabel />
         <Button type="submit" className="justify-self-start px-10">
           Start race
         </Button>
@@ -157,8 +144,8 @@ function PracticeRace({
     [local.onInput, local.onFinish, local.useItem, local.recover],
   );
   const drivers = useMemo(
-    () => new Map([[practicePlayerId, { style: setup.driver }]]),
-    [setup.driver],
+    () => new Map([[practicePlayerId, { style: setup.driver, paint: setup.paint }]]),
+    [setup.driver, setup.paint],
   );
   const outcome = local.outcome;
   return (

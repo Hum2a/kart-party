@@ -5,6 +5,8 @@ import {
   commandRateLimit,
   countdownMs,
   defaultDriverStyle,
+  defaultKartPaint,
+  roomSettingsSchema,
   defaultRoomSettings,
   kartTickMs,
   maxClientMessageBytes,
@@ -14,6 +16,7 @@ import {
   takeToken,
   type ClientMessage,
   type DriverStyle,
+  type KartPaint,
   type KartRace,
   type RateBucket,
   type RateLimit,
@@ -48,6 +51,8 @@ type StoredPlayer = {
   name: string;
   tokenHash: string;
   driver: DriverStyle;
+  /** Absent on racers saved before kart paint existed. */
+  paint?: KartPaint;
   wins: number;
   joinedAt: number;
 };
@@ -91,6 +96,25 @@ export class KartRoom extends DurableObject<Env> {
   private load() {
     const kv = this.ctx.storage.kv;
     this.meta = kv.get<Meta>("meta");
+    // Rooms saved before CPU levels and item modes keep working.
+    if (this.meta) {
+      const settings = this.meta.settings as Omit<Partial<RoomSettings>, "items"> & {
+        items?: RoomSettings["items"] | boolean;
+      };
+      const upgraded = roomSettingsSchema.safeParse({
+        ...defaultRoomSettings,
+        ...settings,
+        items:
+          settings.items === true
+            ? "all"
+            : settings.items === false
+              ? "off"
+              : settings.items,
+      });
+      this.meta.settings = upgraded.success
+        ? upgraded.data
+        : { ...defaultRoomSettings };
+    }
     this.players = new Map(
       (kv.get<StoredPlayer[]>("players") ?? []).map((player) => [
         player.playerId,
@@ -246,7 +270,7 @@ export class KartRoom extends DurableObject<Env> {
         return this.ack(
           ws,
           message.requestId,
-          this.changeDriver(playerId, message.style),
+          this.changeDriver(playerId, message.style, message.paint),
         );
       case "start":
         return this.ack(ws, message.requestId, await this.start(playerId, now));
@@ -339,6 +363,7 @@ export class KartRoom extends DurableObject<Env> {
     if (player) {
       player.name = message.name;
       if (message.driver) player.driver = message.driver;
+      if (message.paint) player.paint = message.paint;
     } else {
       if (this.players.size >= maxRoomPlayers) {
         // Make room by forgetting someone who left while the room was in the lobby.
@@ -357,6 +382,7 @@ export class KartRoom extends DurableObject<Env> {
         name: message.name,
         tokenHash: await hashToken(token),
         driver: message.driver ?? defaultDriverStyle(this.players.size),
+        paint: message.paint ?? defaultKartPaint(this.players.size),
         wins: 0,
         joinedAt: now,
       };
@@ -395,9 +421,10 @@ export class KartRoom extends DurableObject<Env> {
     return { ok: true as const };
   }
 
-  private changeDriver(playerId: string, style: DriverStyle) {
+  private changeDriver(playerId: string, style: DriverStyle, paint?: KartPaint) {
     const player = this.players.get(playerId)!;
     player.driver = style;
+    if (paint) player.paint = paint;
     this.savePlayers();
     this.broadcastRoom();
     return { ok: true as const };
@@ -424,6 +451,7 @@ export class KartRoom extends DurableObject<Env> {
       trackId: meta.settings.trackId,
       laps: meta.settings.laps,
       cpu: meta.settings.cpu,
+      cpuLevel: meta.settings.cpuLevel,
       items: meta.settings.items,
     });
     this.ticks = 0;
@@ -550,7 +578,7 @@ export class KartRoom extends DurableObject<Env> {
         .map((p) => ({
           playerId: p.playerId,
           name: p.name,
-          driver: { style: p.driver },
+          driver: { style: p.driver, ...(p.paint ? { paint: p.paint } : {}) },
           connected: connected.has(p.playerId),
           wins: p.wins,
         })),

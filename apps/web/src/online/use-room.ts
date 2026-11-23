@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DriverStyle, KartRaceView, RoomView } from "@kart-party/game";
+import type { KartRaceView, RoomView } from "@kart-party/game";
+import type { Identity } from "../live/identity";
 import {
   openRoomSocket,
   type ConnectionStatus,
@@ -18,18 +19,16 @@ export type RoomState = {
  * race frames are kept apart: a race frame ten times a second re-renders the
  * race screen, never the lobby.
  */
-export function useRoom(
-  code: string,
-  identity: { name: string; driver?: DriverStyle } | null,
-) {
+export function useRoom(code: string, identity: Identity | null) {
   const [state, setState] = useState<RoomState>({ status: "connecting" });
   const [race, setRace] = useState<KartRaceView | undefined>();
   const socket = useRef<RoomSocket | undefined>(undefined);
   const name = identity?.name;
   const driver = identity?.driver;
+  const paint = identity?.paint;
   useEffect(() => {
     if (!name) return;
-    const opened = openRoomSocket(code, { name, driver }, (event) => {
+    const opened = openRoomSocket(code, { name, driver, paint }, (event) => {
       switch (event.kind) {
         case "status":
           setState((previous) => ({
@@ -55,7 +54,7 @@ export function useRoom(
       opened.close();
       socket.current = undefined;
     };
-    // The driver is sent with hello only; later changes go through a request.
+    // Driver and paint go with hello only; later changes go through a request.
   }, [code, name]);
   const api = useMemo(
     () => ({

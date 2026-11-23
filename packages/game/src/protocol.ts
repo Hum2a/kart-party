@@ -6,7 +6,13 @@ import {
   kartRaceSchema,
 } from "./kart/kart-race-schema.ts";
 import { kartFinishSchema } from "./kart/kart-rollback-schema.ts";
-import { driverStyleSchema, lobbyDriverSchema } from "./kart/kart-driver.ts";
+import {
+  driverStyleSchema,
+  kartPaintSchema,
+  lobbyDriverSchema,
+} from "./kart/kart-driver.ts";
+import { kartCpuLevels } from "./kart/kart-cpu.ts";
+import { raceItemModes } from "./session.ts";
 import { kartTrackIdSchema } from "./kart/kart-tracks.ts";
 import { kartTrackId } from "./kart/kart-race-schema.ts";
 
@@ -39,7 +45,8 @@ export const roomSettingsSchema = z
     trackId: kartTrackIdSchema,
     laps: kartLapsSchema,
     cpu: kartCpuCountSchema,
-    items: z.boolean(),
+    cpuLevel: z.enum(kartCpuLevels),
+    items: z.enum(raceItemModes),
   })
   .strict();
 export type RoomSettings = z.infer<typeof roomSettingsSchema>;
@@ -47,7 +54,8 @@ export const defaultRoomSettings: RoomSettings = {
   trackId: kartTrackId,
   laps: 3,
   cpu: 3,
-  items: true,
+  cpuLevel: "normal",
+  items: "all",
 };
 
 export const roomPhaseSchema = z.enum(["lobby", "countdown", "racing", "results"]);
@@ -103,12 +111,20 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
       name: nicknameSchema,
       token: playerTokenSchema.optional(),
       driver: driverStyleSchema.optional(),
+      paint: kartPaintSchema.optional(),
     })
     .strict(),
   z
     .object({ type: z.literal("settings"), requestId, settings: roomSettingsSchema })
     .strict(),
-  z.object({ type: z.literal("driver"), requestId, style: driverStyleSchema }).strict(),
+  z
+    .object({
+      type: z.literal("driver"),
+      requestId,
+      style: driverStyleSchema,
+      paint: kartPaintSchema.optional(),
+    })
+    .strict(),
   z.object({ type: z.literal("start"), requestId }).strict(),
   z.object({ type: z.literal("lobby"), requestId }).strict(),
   z

@@ -16,11 +16,25 @@ import {
   type KartLaps,
 } from "./kart/kart-race-schema.ts";
 import { kartFinishSchema } from "./kart/kart-rollback-schema.ts";
-import { isKartCpuId } from "./kart/kart-cpu.ts";
+import { isKartCpuId, type KartCpuLevel } from "./kart/kart-cpu.ts";
+import { kartItemSchema, type KartItem } from "./kart/kart-powers.ts";
+import type { KartItemRules } from "./kart/kart-item-rules.ts";
 import type { RaceResult } from "./protocol.ts";
 
 /** After the first racer crosses the line, everyone else has this long to finish. */
 export const finishGraceMs = 30_000;
+
+export const raceItemModes = ["off", "classic", "all"] as const;
+export type RaceItemMode = (typeof raceItemModes)[number];
+
+/** Every item, with boxes favouring catch-up items for racers at the back. */
+export const allItemRules: KartItemRules = {
+  version: 2,
+  allowed: [...kartItemSchema.options] as KartItem[],
+  luck: "position",
+};
+/** Turbo, Bubble shield and Oil slick on a fixed rotation. */
+export const classicItemRules: KartItemRules = { version: 1 };
 
 export type RaceSetup = {
   raceId: string;
@@ -28,8 +42,14 @@ export type RaceSetup = {
   trackId: KartTrackId;
   laps: KartLaps;
   cpu: number;
-  items: boolean;
+  cpuLevel?: KartCpuLevel;
+  /** Older callers pass a boolean: true is every item, false is none. */
+  items: RaceItemMode | boolean;
 };
+
+export function raceItemMode(items: RaceSetup["items"]): RaceItemMode {
+  return items === true ? "all" : items === false ? "off" : items;
+}
 
 type Queue = { at: number; lastSequence: number; pending: KartTimedInput[] };
 export type SessionResult = { ok: true } | { ok: false; message: string };
@@ -52,11 +72,14 @@ export class RaceSession {
   }
 
   static create(setup: RaceSetup): RaceSession {
+    const items = raceItemMode(setup.items);
     let race = createKartRace(setup.raceId, setup.players, {
       seedGrid: true,
       trackId: setup.trackId,
       laps: setup.laps,
       cpu: setup.cpu,
+      cpuLevel: setup.cpuLevel ?? "normal",
+      itemRules: items === "all" ? allItemRules : classicItemRules,
     });
     // The first throttle after GO can earn a start boost.
     race.launchVersion = 1;
@@ -64,7 +87,10 @@ export class RaceSession {
     race.timingMode = "device-v1";
     race.opponentsEnabled = true;
     race.recapVersion = 1;
-    if (!setup.items)
+    // Effects and the daylight look are on; each device still scales them to its graphics tier.
+    race.effectsEnabled = true;
+    race.look = "daylight";
+    if (items === "off")
       race = reduceKart(race, { type: "items-spawning", enabled: false });
     return new RaceSession(race);
   }

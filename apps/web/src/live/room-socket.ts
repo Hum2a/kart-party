@@ -1,13 +1,12 @@
 import type {
   ClientMessage,
-  DriverStyle,
   KartInput,
   KartRaceView,
   RoomView,
   ServerMessage,
 } from "@kart-party/game";
 import { noteServerTime } from "./server-clock";
-import { saveToken, savedToken } from "./identity";
+import { saveToken, savedToken, type Identity } from "./identity";
 
 export type ConnectionStatus =
   "connecting" | "open" | "reconnecting" | "full" | "closed";
@@ -45,7 +44,7 @@ type RequestBody = Requestable extends infer M
  */
 export function openRoomSocket(
   code: string,
-  identity: { name: string; driver?: DriverStyle },
+  identity: Identity,
   listener: (event: RoomEvent) => void,
   options: { url?: string; WebSocketImpl?: typeof WebSocket } = {},
 ) {
@@ -91,6 +90,7 @@ export function openRoomSocket(
         name: identity.name,
         ...(token ? { token } : {}),
         ...(identity.driver ? { driver: identity.driver } : {}),
+        ...(identity.paint ? { paint: identity.paint } : {}),
       });
       // A few quick samples give a usable clock offset before GO.
       for (let i = 0; i < 5; i++) setTimeout(ping, i * 150);

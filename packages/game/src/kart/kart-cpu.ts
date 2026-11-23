@@ -19,9 +19,15 @@ export const kartCpuNames = [
   "CPU Ziggy Zoom",
 ] as const;
 
+export const kartCpuLevels = ["easy", "normal", "hard"] as const;
+export type KartCpuLevel = (typeof kartCpuLevels)[number];
+/** How each level scales a CPU racer's personal pace. Hard karts take every straight flat out. */
+const levelScale: Record<KartCpuLevel, number> = { easy: 0.82, normal: 1, hard: 1.12 };
+
 /** Spread from steady to sharp, so the CPU field strings out like a real race. */
-export function kartCpuSkill(index: number): number {
-  return [0.84, 0.95, 0.88, 0.92, 0.8, 0.9, 0.86][index % 7]!;
+export function kartCpuSkill(index: number, level: KartCpuLevel = "normal"): number {
+  const base = [0.84, 0.95, 0.88, 0.92, 0.8, 0.9, 0.86][index % 7]!;
+  return Math.round(base * levelScale[level] * 1000) / 1000;
 }
 
 export const kartCpuPlayerId = (index: number) => `cpu-${index + 1}`;
@@ -57,7 +63,8 @@ export function kartCpuInput(
   );
   const error = wrap(Math.atan2(target.z - kart.z, target.x - kart.x) - kart.heading);
   // A small personal wobble so CPU karts do not drive in a perfect line.
-  const wobble = Math.sin(elapsedMs / 650 + index * 1.7) * 0.06 * (1.1 - skill);
+  const wobble =
+    Math.sin(elapsedMs / 650 + index * 1.7) * 0.06 * Math.max(0, 1.1 - skill);
   const steer = Math.max(-1, Math.min(1, error * 2.4 + wobble));
   const sharp = Math.abs(error);
   return {

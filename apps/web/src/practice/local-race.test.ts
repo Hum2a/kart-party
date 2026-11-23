@@ -8,7 +8,9 @@ const setup: PracticeSetup = {
   trackId: "parkside-v1",
   laps: 1,
   cpu: 2,
-  items: true,
+  cpuLevel: "normal",
+  items: "all",
+  paint: "lagoon",
 };
 
 beforeEach(() => {

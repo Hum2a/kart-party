@@ -1,8 +1,10 @@
 import { motion } from "motion/react";
 import {
   driverStyles,
+  kartPaints,
   kartTrackCatalogue,
   type DriverStyle,
+  type KartPaint,
   type KartTrackId,
 } from "@kart-party/game";
 import { DriverEmblem } from "../kart/DriverBadge";
@@ -100,6 +102,44 @@ export function DriverPicker({
               <DriverEmblem style={style.id} />
             </span>
             {style.name}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export function PaintPicker({
+  value,
+  onChange,
+}: {
+  value: KartPaint;
+  onChange: (paint: KartPaint) => void;
+}) {
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="mb-1.5 text-sm font-bold uppercase tracking-wide text-muted">
+        Kart paint
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {kartPaints.map((paint) => (
+          <label
+            key={paint.id}
+            className="motion-press skin-control flex min-h-11 cursor-pointer touch-manipulation items-center gap-2 border border-line py-1 pl-1.5 pr-3 text-sm font-bold has-checked:border-foreground has-checked:bg-[color-mix(in_srgb,var(--foreground)_10%,transparent)]"
+          >
+            <input
+              type="radio"
+              name="paint"
+              className="sr-only"
+              checked={value === paint.id}
+              onChange={() => onChange(paint.id)}
+            />
+            <span
+              aria-hidden="true"
+              className="size-7 rounded-full border-2 border-background shadow"
+              style={{ background: paint.hex }}
+            />
+            {paint.name}
           </label>
         ))}
       </div>

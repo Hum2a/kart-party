@@ -4,6 +4,8 @@ import {
   ringCourse,
   courseFeaturePose,
   polylineTrack,
+  kartPaintHex,
+  type LobbyDriver,
 } from "@kart-party/game";
 import type { KartRaceView } from "@kart-party/game";
 import { driftEffectDescription, driftStrength } from "./drift-effects";
@@ -321,6 +323,7 @@ export function createCircuit(
     value.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   }
   // Each kart's driver. The old helmet sphere stays unused: its geometry is shared below.
+  let paints = new Map<string, THREE.Color>();
   const rig = createDriverRig({
     onChange: onVisualChange,
     scene,
@@ -607,7 +610,10 @@ export function createCircuit(
       place(noses, i, x + c * 1.25, 0.5 + height, z + s * 1.25, -heading);
       // The seat is now a backrest behind the driver.
       place(seats, i, x - c * 0.78, 1.05 + height, z - s * 0.78, -heading, 0.5, 1, 1.1);
-      bodies.setColorAt(i, driver.number % 2 ? accent : highlight);
+      bodies.setColorAt(
+        i,
+        paints.get(driver.playerId) ?? (driver.number % 2 ? accent : highlight),
+      );
       rig.place(
         driver.playerId,
         driver.number - 1,
@@ -909,7 +915,19 @@ export function createCircuit(
     setPredicted(playerId: string | undefined) {
       predictedPlayerId = playerId;
     },
-    setDrivers: rig.setDrivers,
+    /** Driver styles for the rig, and each racer's kart paint for the body. */
+    setDrivers(
+      next: ReadonlyMap<string, LobbyDriver>,
+      url: (mediaId: string) => string,
+    ) {
+      rig.setDrivers(next, url);
+      paints = new Map(
+        [...next].flatMap(([playerId, driver]) => {
+          const hex = kartPaintHex(driver.paint);
+          return hex ? [[playerId, new THREE.Color(hex)] as const] : [];
+        }),
+      );
+    },
     driverCounts: rig.counts,
     renderStats: () => ({ drivers: poses.size, detailed: detailedVisible }),
     dispose() {

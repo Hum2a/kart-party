@@ -1,4 +1,10 @@
-import { driverStyleSchema, nicknameSchema, type DriverStyle } from "@kart-party/game";
+import {
+  driverStyleSchema,
+  kartPaintSchema,
+  nicknameSchema,
+  type DriverStyle,
+  type KartPaint,
+} from "@kart-party/game";
 
 /**
  * Per-browser conveniences: the last name and driver used. The random
@@ -9,6 +15,7 @@ import { driverStyleSchema, nicknameSchema, type DriverStyle } from "@kart-party
  */
 const nameKey = "kart-party:name";
 const driverKey = "kart-party:driver";
+const paintKey = "kart-party:paint";
 const tokenKey = (code: string) => `kart-party:token:${code}`;
 
 type Area = "localStorage" | "sessionStorage";
@@ -39,6 +46,20 @@ export function savedDriver(): DriverStyle | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 export const saveDriver = (style: DriverStyle) => write(driverKey, style);
+
+export function savedPaint(): KartPaint | undefined {
+  const parsed = kartPaintSchema.safeParse(read(paintKey));
+  return parsed.success ? parsed.data : undefined;
+}
+export const savePaint = (paint: KartPaint) => write(paintKey, paint);
+
+/** Who this browser races as. Everything but the name is optional. */
+export type Identity = { name: string; driver?: DriverStyle; paint?: KartPaint };
+export const savedIdentity = (name: string): Identity => ({
+  name,
+  driver: savedDriver(),
+  paint: savedPaint(),
+});
 
 export const savedToken = (code: string) =>
   read(tokenKey(code), "sessionStorage") ?? undefined;

@@ -16,6 +16,32 @@ export const driverStyles = [
 
 export type DriverStyle = (typeof driverStyles)[number]["id"];
 
+/**
+ * Kart paint. Each has a name for screen readers and results, so colour is
+ * never the only way to tell karts apart.
+ */
+export const kartPaints = [
+  { id: "flame", name: "Flame", hex: "#ff5a36" },
+  { id: "lagoon", name: "Lagoon", hex: "#2fd4c4" },
+  { id: "lemon", name: "Lemon", hex: "#ffd23f" },
+  { id: "grape", name: "Grape", hex: "#9b6cff" },
+  { id: "lime", name: "Lime", hex: "#7ddc3c" },
+  { id: "sky", name: "Sky", hex: "#3d9bff" },
+  { id: "bubblegum", name: "Bubblegum", hex: "#ff6fb5" },
+  { id: "snow", name: "Snow", hex: "#f2f0ff" },
+] as const;
+export type KartPaint = (typeof kartPaints)[number]["id"];
+export const kartPaintSchema = z.enum(
+  kartPaints.map((paint) => paint.id) as [KartPaint, ...KartPaint[]],
+);
+export const kartPaintHex = (paint: KartPaint | undefined): string | undefined =>
+  kartPaints.find((entry) => entry.id === paint)?.hex;
+/** A racer who has not chosen still gets a varied, stable paint. */
+export function defaultKartPaint(order: number): KartPaint {
+  const index = ((order % kartPaints.length) + kartPaints.length) % kartPaints.length;
+  return kartPaints[index]!.id;
+}
+
 export const driverStyleSchema = z.enum(
   driverStyles.map((style) => style.id) as [DriverStyle, ...DriverStyle[]],
 );
@@ -34,6 +60,7 @@ export type DriverChoice = z.infer<typeof driverChoiceSchema>;
 export const lobbyDriverSchema = z
   .object({
     style: driverStyleSchema,
+    paint: kartPaintSchema.optional(),
     faceMediaId: z.uuid().optional(),
   })
   .strict();

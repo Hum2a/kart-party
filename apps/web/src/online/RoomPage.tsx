@@ -5,32 +5,35 @@ import {
   kartTrackName,
   nicknameSchema,
   roomCodeSchema,
-  type DriverStyle,
-  type KartLaps,
   type LobbyDriver,
   type RoomSettings,
   type RoomView,
 } from "@kart-party/game";
-import { Button, LinkButton, Segmented, TextField } from "../ui/primitives";
-import { DriverPicker, TrackPicker } from "../race/pickers";
+import { Button, LinkButton, TextField } from "../ui/primitives";
+import { RaceOptions } from "../race/RaceOptions";
+import { DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
 import { DriverBadge } from "../kart/DriverBadge";
 import type { RaceStage } from "../kart/race-stage";
 import { serverOffset } from "../live/server-clock";
-import { saveDriver, saveName, savedDriver, savedName } from "../live/identity";
+import {
+  saveDriver,
+  saveName,
+  savePaint,
+  savedIdentity,
+  savedName,
+  type Identity,
+} from "../live/identity";
 import { useRoom } from "./use-room";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 
 export function RoomPage() {
   const params = useParams();
   const code = roomCodeSchema.safeParse(params.code ?? "");
-  const [identity, setIdentity] = useState<{
-    name: string;
-    driver?: DriverStyle;
-  } | null>(() => {
+  const [identity, setIdentity] = useState<Identity | null>(() => {
     const name = savedName();
-    return name ? { name, driver: savedDriver() } : null;
+    return name ? savedIdentity(name) : null;
   });
   if (!code.success)
     return (
@@ -59,7 +62,7 @@ function NameGate({
   onReady,
 }: {
   code: string;
-  onReady: (identity: { name: string; driver?: DriverStyle }) => void;
+  onReady: (identity: Identity) => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -78,7 +81,7 @@ function NameGate({
             return;
           }
           saveName(parsed.data);
-          onReady({ name: parsed.data, driver: savedDriver() });
+          onReady(savedIdentity(parsed.data));
         }}
       >
         <TextField
@@ -102,13 +105,7 @@ function NameGate({
 const stagePhase = { countdown: "grid", racing: "racing", results: "done" } as const;
 const serverNow = () => Date.now() + (serverOffset() ?? 0);
 
-function Room({
-  code,
-  identity,
-}: {
-  code: string;
-  identity: { name: string; driver?: DriverStyle };
-}) {
+function Room({ code, identity }: { code: string; identity: Identity }) {
   const room = useRoom(code, identity);
   const view = room.room;
   const reduced = usePrefersReducedMotion();
@@ -309,14 +306,32 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
 
       {self ? (
         <section className="panel p-5">
-          <DriverPicker
-            value={self.driver.style}
-            onChange={async (style) => {
-              saveDriver(style);
-              const ack = await request({ type: "driver", style });
-              if (!ack.ok) setNotice(ack.message ?? "Could not change driver.");
-            }}
-          />
+          <div className="grid gap-5">
+            <DriverPicker
+              value={self.driver.style}
+              onChange={async (style) => {
+                saveDriver(style);
+                const ack = await request({
+                  type: "driver",
+                  style,
+                  ...(self.driver.paint ? { paint: self.driver.paint } : {}),
+                });
+                if (!ack.ok) setNotice(ack.message ?? "Could not change driver.");
+              }}
+            />
+            <PaintPicker
+              value={self.driver.paint ?? "flame"}
+              onChange={async (paint) => {
+                savePaint(paint);
+                const ack = await request({
+                  type: "driver",
+                  style: self.driver.style,
+                  paint,
+                });
+                if (!ack.ok) setNotice(ack.message ?? "Could not change paint.");
+              }}
+            />
+          </div>
         </section>
       ) : null}
 
@@ -330,33 +345,10 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
               value={settings.trackId}
               onChange={(trackId) => change({ ...settings, trackId })}
             />
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Segmented
-                label="Laps"
-                value={settings.laps}
-                onChange={(laps: KartLaps) => change({ ...settings, laps })}
-                options={[
-                  { value: 1, label: "1" },
-                  { value: 2, label: "2" },
-                  { value: 3, label: "3" },
-                ]}
-              />
-              <Segmented
-                label="CPU racers"
-                value={settings.cpu}
-                onChange={(cpu) => change({ ...settings, cpu })}
-                options={[0, 1, 3, 5, 7].map((n) => ({ value: n, label: String(n) }))}
-              />
-              <Segmented
-                label="Items"
-                value={settings.items ? "on" : "off"}
-                onChange={(value) => change({ ...settings, items: value === "on" })}
-                options={[
-                  { value: "on", label: "On" },
-                  { value: "off", label: "Off" },
-                ]}
-              />
-            </div>
+            <RaceOptions
+              value={settings}
+              onChange={(rules) => change({ ...settings, ...rules })}
+            />
             <Button
               className="justify-self-start px-10"
               disabled={starting}
@@ -377,8 +369,8 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
         ) : (
           <p className="text-lg">
             {kartTrackName(settings.trackId)} · {settings.laps}{" "}
-            {settings.laps === 1 ? "lap" : "laps"} · {settings.cpu} CPU · items{" "}
-            {settings.items ? "on" : "off"}
+            {settings.laps === 1 ? "lap" : "laps"} · {settings.cpu} CPU
+            {settings.cpu > 0 ? ` (${settings.cpuLevel})` : ""} · items {settings.items}
             <span className="mt-2 block text-muted">
               Waiting for the host to start…
             </span>

@@ -9,7 +9,9 @@ import {
   type KartLaps,
   type KartRaceView,
   type KartTrackId,
+  type KartPaint,
   type RaceResult,
+  type RoomSettings,
 } from "@kart-party/game";
 import { countdownMs } from "@kart-party/game";
 import type { RaceStage } from "../kart/race-stage";
@@ -23,7 +25,9 @@ export type PracticeSetup = {
   trackId: KartTrackId;
   laps: KartLaps;
   cpu: number;
-  items: boolean;
+  cpuLevel: RoomSettings["cpuLevel"];
+  items: RoomSettings["items"];
+  paint: KartPaint;
 };
 
 export type PracticeOutcome = {
@@ -38,7 +42,7 @@ export type PracticeOutcome = {
  * still drawn from local prediction, exactly as online.
  */
 export function useLocalRace(setup: PracticeSetup, run: number) {
-  const { name, trackId, laps, cpu, items } = setup;
+  const { name, trackId, laps, cpu, cpuLevel, items } = setup;
   // Keyed on values, not object identity, so a new but equal setup is the same race.
   const session = useMemo(
     () =>
@@ -48,9 +52,10 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
         trackId,
         laps,
         cpu,
+        cpuLevel,
         items,
       }),
-    [name, trackId, laps, cpu, items, run],
+    [name, trackId, laps, cpu, cpuLevel, items, run],
   );
   const goAt = useRef(0);
   const pausedAt = useRef<number | null>(null);

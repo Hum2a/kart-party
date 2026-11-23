@@ -70,6 +70,7 @@ import {
   kartCpuNames,
   kartCpuPlayerId,
   kartCpuSkill,
+  type KartCpuLevel,
 } from "./kart-cpu.ts";
 import { kartSpectatorView, type KartStageMode } from "./kart-spectator.ts";
 import {
@@ -192,6 +193,8 @@ export function createKartRace(
     laps?: KartLaps;
     /** CPU racers to add behind the guests (0–7). */
     cpu?: number;
+    /** How quick the CPU racers are. */
+    cpuLevel?: KartCpuLevel;
     /** A room race passes `kartOpenRaceMs` so it runs until everyone finishes. */
     timeLimitMs?: number;
   } = {},
@@ -237,7 +240,7 @@ export function createKartRace(
       playerId: kartCpuPlayerId(i),
       name: kartCpuNames[i]!,
       cpu: true as const,
-      skill: kartCpuSkill(i),
+      skill: kartCpuSkill(i, options.cpuLevel),
     })),
   ];
   const polyline = Boolean(polylineTrack(options.trackId));

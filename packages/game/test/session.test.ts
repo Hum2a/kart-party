@@ -7,6 +7,9 @@ import {
   nicknameSchema,
   parkTrackId,
   harbourTrackId,
+  kartPaints,
+  defaultKartPaint,
+  kartPaintHex,
   type KartInput,
 } from "../src/index.ts";
 
@@ -151,6 +154,83 @@ describe("protocol", () => {
     expect(clientMessageSchema.safeParse({ type: "start" }).success).toBe(false);
     expect(
       clientMessageSchema.safeParse({ type: "cheat", requestId: "r1" }).success,
+    ).toBe(false);
+  });
+});
+
+describe("phase 1 race options", () => {
+  it("offers no items, the classic three, or every item with catch-up luck", () => {
+    const off = RaceSession.create({ ...setup, items: "off" });
+    expect(off.race.itemsWorld?.spawning).toBe(false);
+    const classic = RaceSession.create({ ...setup, items: "classic" });
+    expect(classic.race.itemRules).toEqual({ version: 1 });
+    const all = RaceSession.create({ ...setup, items: "all" });
+    expect(all.race.itemRules).toMatchObject({ version: 2, luck: "position" });
+    expect(
+      all.race.itemRules?.version === 2 && all.race.itemRules.allowed,
+    ).toHaveLength(7);
+    // Older rooms stored a boolean.
+    expect(RaceSession.create({ ...setup, items: true }).race.itemRules).toMatchObject({
+      version: 2,
+    });
+  });
+
+  it("switches on effects and the daylight look for every race", () => {
+    const view = RaceSession.create(setup).view("p-aaaaaaaa");
+    expect(view.effectsEnabled).toBe(true);
+    expect(view.look).toBe("daylight");
+  });
+
+  it("makes CPU racers slower on easy and quicker on hard, in the same order", () => {
+    const skills = (cpuLevel: "easy" | "normal" | "hard") =>
+      RaceSession.create({ ...setup, cpu: 7, cpuLevel })
+        .race.drivers.filter((d) => d.cpu)
+        .map((d) => d.skill!);
+    const [easy, normal, hard] = [skills("easy"), skills("normal"), skills("hard")];
+    easy.forEach((skill, i) => {
+      expect(skill).toBeLessThan(normal[i]!);
+      expect(normal[i]!).toBeLessThan(hard[i]!);
+    });
+  });
+
+  it("hard CPU racers finish a lap sooner than easy ones", () => {
+    const lap = (cpuLevel: "easy" | "hard") => {
+      const session = RaceSession.create({
+        ...setup,
+        players: [],
+        cpu: 1,
+        cpuLevel,
+        items: "off",
+      });
+      for (let t = 0; t <= 120_000 && !session.race.ended; t += 100) session.tick(t);
+      return session.race.drivers[0]!.lapTimeMs ?? Infinity;
+    };
+    expect(lap("hard")).toBeLessThan(lap("easy"));
+  });
+});
+
+describe("kart paint", () => {
+  it("names every paint and gives unchosen racers a varied default", () => {
+    expect(kartPaints).toHaveLength(8);
+    expect(new Set(kartPaints.map((p) => p.hex)).size).toBe(8);
+    expect(defaultKartPaint(0)).not.toBe(defaultKartPaint(1));
+    expect(defaultKartPaint(8)).toBe(defaultKartPaint(0));
+    expect(kartPaintHex("lagoon")).toBe("#2fd4c4");
+    expect(
+      clientMessageSchema.safeParse({
+        type: "driver",
+        requestId: "r",
+        style: "dj",
+        paint: "grape",
+      }).success,
+    ).toBe(true);
+    expect(
+      clientMessageSchema.safeParse({
+        type: "driver",
+        requestId: "r",
+        style: "dj",
+        paint: "gold",
+      }).success,
     ).toBe(false);
   });
 });

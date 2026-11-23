@@ -1,4 +1,10 @@
-import { SELF, env, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
+import {
+  SELF,
+  env,
+  evictDurableObject,
+  runDurableObjectAlarm,
+  runInDurableObject,
+} from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ServerMessage, RoomView } from "@kart-party/game";
 import type { KartRoom } from "../src/room.ts";
@@ -118,13 +124,25 @@ describe("KartRoom", () => {
     bo.client.send({
       type: "settings",
       requestId: "s2",
-      settings: { trackId: "harbour-v1", laps: 1, cpu: 0, items: false },
+      settings: {
+        trackId: "harbour-v1",
+        laps: 1,
+        cpu: 0,
+        cpuLevel: "normal",
+        items: "off",
+      },
     });
     expect(await bo.client.next("ack")).toMatchObject({ requestId: "s2", ok: false });
     ada.client.send({
       type: "settings",
       requestId: "s3",
-      settings: { trackId: "harbour-v1", laps: 1, cpu: 0, items: false },
+      settings: {
+        trackId: "harbour-v1",
+        laps: 1,
+        cpu: 0,
+        cpuLevel: "normal",
+        items: "off",
+      },
     });
     expect(await ada.client.next("ack")).toMatchObject({ requestId: "s3", ok: true });
     const updated = await bo.client.next(
@@ -135,12 +153,19 @@ describe("KartRoom", () => {
       trackId: "harbour-v1",
       laps: 1,
       cpu: 0,
-      items: false,
+      cpuLevel: "normal",
+      items: "off",
     });
     ada.client.send({
       type: "settings",
       requestId: "s4",
-      settings: { trackId: "nowhere", laps: 9, cpu: 0, items: false },
+      settings: {
+        trackId: "nowhere",
+        laps: 9,
+        cpu: 0,
+        cpuLevel: "normal",
+        items: "off",
+      },
     });
     expect(await ada.client.next("error")).toMatchObject({ code: "bad-request" });
   });
@@ -152,7 +177,13 @@ describe("KartRoom", () => {
     ada.client.send({
       type: "settings",
       requestId: "set",
-      settings: { trackId: "party-ring-v1", laps: 1, cpu: 1, items: true },
+      settings: {
+        trackId: "party-ring-v1",
+        laps: 1,
+        cpu: 1,
+        cpuLevel: "hard",
+        items: "all",
+      },
     });
     await ada.client.next("ack", (m) => m.requestId === "set");
     ada.client.send({ type: "start", requestId: "go" });
@@ -247,5 +278,48 @@ describe("KartRoom", () => {
     const late = await connect(code);
     late.send({ type: "hello", name: "Late" });
     expect(await late.next("error")).toMatchObject({ code: "full" });
+  });
+});
+
+describe("phase 1 options", () => {
+  it("gives each racer a kart paint and lets them change it", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    const bo = await join(code, "Bo");
+    const paints = bo.room.players.map((p) => p.driver.paint);
+    expect(paints[0]).toBeTruthy();
+    expect(paints[0]).not.toBe(paints[1]);
+    bo.client.send({ type: "driver", requestId: "d1", style: "dj", paint: "grape" });
+    expect(await bo.client.next("ack", (m) => m.requestId === "d1")).toMatchObject({
+      ok: true,
+    });
+    const seen = await ada.client.next("room", (m) =>
+      m.room.players.some((p) => p.driver.paint === "grape"),
+    );
+    expect(seen.room.players.find((p) => p.name === "Bo")?.driver).toEqual({
+      style: "dj",
+      paint: "grape",
+    });
+  });
+
+  it("upgrades settings saved before CPU levels and item modes", async () => {
+    const code = await createRoom();
+    const stub = roomStub(code);
+    await runInDurableObject(stub, (_instance, state) => {
+      const meta = state.storage.kv.get<{ settings: unknown }>("meta")!;
+      state.storage.kv.put("meta", {
+        ...meta,
+        settings: { trackId: "parkside-v1", laps: 2, cpu: 5, items: false },
+      });
+    });
+    await evictDurableObject(stub);
+    const ada = await join(code, "Ada");
+    expect(ada.room.settings).toEqual({
+      trackId: "parkside-v1",
+      laps: 2,
+      cpu: 5,
+      cpuLevel: "normal",
+      items: "off",
+    });
   });
 });
