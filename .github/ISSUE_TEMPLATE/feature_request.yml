@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an original track, item, control improvement, or multiplayer enhancement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Note: Kart Party uses **original content only** (all tracks, karts, drivers, and audio are generated in code).
+  - type: textarea
+    id: summary
+    attributes:
+      label: What would you like to add or improve?
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why would this make Kart Party better?
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design or constraints (optional)
+      description: Share any ideas for gameplay balance, UI, or workspace placement (`packages/game`, `apps/web`, `apps/worker`).

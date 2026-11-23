@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a gameplay, rendering, multiplayer, or control bug in Kart Party.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please include as much detail as you can so we can reproduce it.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Practice mode
+        - Online rooms / multiplayer
+        - 3D renderer / graphics / VFX
+        - Controls (keyboard / touch / gamepad)
+        - Audio / haptics
+        - Game physics / tracks / items
+        - Build / tooling / docs
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Live site (kart.humza.website)
+        - Local dev server (npm run dev)
+        - Test suite (npm test)
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Browser & Device
+      placeholder: e.g. Chrome 134 on Windows 11, Safari on iOS 18, Xbox controller
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open /play and create a room
+        2. Start a 3-lap race on Harbour Hairpins
+        3. ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console errors or test output (optional)
+      render: shell

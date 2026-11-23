@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 390" width="1200" height="390" role="img" aria-label="Kart Party Tracks: Party Ring, Parkside, and Harbour Hairpins">
+  <defs>
+    <linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1f3d"/>
+      <stop offset="100%" stop-color="#12162e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Card 1: Party Ring -->
+  <g transform="translate(0, 0)">
+    <rect x="1" y="1" width="382" height="388" rx="20" fill="url(#card-bg)" stroke="#343b6e" stroke-width="2"/>
+    <!-- Difficulty pill -->
+    <rect x="24" y="24" width="66" height="24" rx="12" fill="#133330" stroke="#3ee0d0" stroke-width="1"/>
+    <text x="57" y="40" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="800" fill="#3ee0d0" letter-spacing="0.8">EASY</text>
+    <text x="358" y="40" text-anchor="end" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="600" fill="#a3a8cf">~264 m · 128 segs</text>
+
+    <!-- Exact Track Map (Party Ring) -->
+    <g transform="translate(191, 152) scale(1.75)">
+      <circle r="47" fill="none" stroke="#ff5a36" stroke-width="1.3"/>
+      <circle r="42" fill="none" stroke="#242a52" stroke-width="9"/>
+      <circle r="42" fill="none" stroke="#343b6e" stroke-dasharray="2 3" stroke-width="0.7"/>
+      <circle r="37" fill="none" stroke="#ff5a36" stroke-width="1.3"/>
+      <circle cx="42" cy="0" r="2.8" fill="#3ee0d0"/>
+    </g>
+
+    <text x="24" y="280" font-family="'Arial Black', 'Segoe UI Black', system-ui, sans-serif" font-size="22" font-weight="900" fill="#f4f1ff">Party Ring</text>
+    <text x="24" y="304" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">A short banked loop. Learn to drift and</text>
+    <text x="24" y="323" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">chain boosts cleanly through wide corners.</text>
+
+    <line x1="24" y1="344" x2="358" y2="344" stroke="#343b6e" stroke-width="1"/>
+    <text x="24" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#3ee0d0">18 item boxes</text>
+    <text x="148" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" fill="#a3a8cf">1 boost · 1 ramp · 1 hazard · 45 s cap</text>
+  </g>
+
+  <!-- Card 2: Parkside -->
+  <g transform="translate(409, 0)">
+    <rect x="1" y="1" width="382" height="388" rx="20" fill="url(#card-bg)" stroke="#343b6e" stroke-width="2"/>
+    <rect x="24" y="24" width="82" height="24" rx="12" fill="#2b2416" stroke="#f6c15c" stroke-width="1"/>
+    <text x="65" y="40" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="800" fill="#f6c15c" letter-spacing="0.8">MEDIUM</text>
+    <text x="358" y="40" text-anchor="end" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="600" fill="#a3a8cf">~659 m · 72 segs</text>
+
+    <!-- Exact Track Map (Parkside from polylineTrack) -->
+    <g transform="translate(191, 152) scale(1.75)">
+      <path d="M-29.34 0.00L-29.34 -23.95L-29.23 -25.57L-28.95 -27.02L-28.47 -28.41L-27.82 -29.73L-27.01 -30.95L-26.04 -32.05L-24.93 -33.02L-23.71 -33.84L-22.39 -34.49L-21.00 -34.96L-19.56 -35.25L-17.93 -35.36L13.90 -35.36L15.52 -35.25L16.96 -34.96L18.36 -34.49L19.67 -33.84L20.90 -33.02L22.00 -32.05L22.97 -30.95L23.79 -29.73L24.44 -28.41L24.91 -27.02L25.20 -25.57L25.38 -22.79L27.04 -19.58L28.03 -17.43L28.75 -15.48L29.17 -13.71L29.31 -12.05L29.17 -10.40L28.75 -8.63L28.03 -6.67L27.04 -4.53L25.84 -2.21L24.55 0.29L23.31 2.97L22.25 5.84L21.53 8.89L21.27 12.05L21.53 15.22L22.25 18.27L23.31 21.14L24.55 23.82L25.23 25.13L25.20 25.57L24.91 27.02L24.44 28.41L23.79 29.73L22.97 30.95L22.00 32.05L20.90 33.02L19.67 33.84L18.36 34.49L16.96 34.96L15.52 35.25L13.90 35.36L-17.93 35.36L-19.56 35.25L-21.00 34.96L-22.39 34.49L-23.71 33.84L-24.93 33.02L-26.04 32.05L-27.01 30.95L-27.82 29.73L-28.47 28.41L-28.95 27.02L-29.23 25.57L-29.34 23.95Z M-38.98 0.00L-38.98 -24.26L-38.81 -26.84L-38.28 -29.52L-37.40 -32.11L-36.19 -34.56L-34.67 -36.83L-32.87 -38.89L-30.81 -40.69L-28.54 -42.21L-26.09 -43.42L-23.50 -44.30L-20.82 -44.83L-18.25 -45.00L14.21 -45.00L16.78 -44.83L19.46 -44.30L22.05 -43.42L24.51 -42.21L26.78 -40.69L28.84 -38.89L30.64 -36.83L32.16 -34.56L33.37 -32.11L34.25 -29.52L34.78 -26.84L34.87 -25.42L35.70 -23.82L36.94 -21.14L38.00 -18.27L38.72 -15.22L38.98 -12.05L38.72 -8.89L38.00 -5.84L36.94 -2.97L35.70 -0.29L34.41 2.21L33.22 4.53L32.22 6.67L31.50 8.63L31.08 10.40L30.95 12.05L31.08 13.71L31.50 15.48L32.22 17.43L33.22 19.58L35.02 23.09L34.78 26.84L34.25 29.52L33.37 32.11L32.16 34.56L30.64 36.83L28.84 38.89L26.78 40.69L24.51 42.21L22.05 43.42L19.46 44.30L16.78 44.83L14.21 45.00L-18.25 45.00L-20.82 44.83L-23.50 44.30L-26.09 43.42L-28.54 42.21L-30.81 40.69L-32.87 38.89L-34.67 36.83L-36.19 34.56L-37.40 32.11L-38.28 29.52L-38.81 26.84L-38.98 24.26Z" fill="#242a52" fill-rule="evenodd" stroke="#ff5a36" stroke-width="1.2"/>
+      <path d="M-34.16 0.00L-34.16 -24.11L-34.02 -26.20L-33.61 -28.27L-32.94 -30.26L-32.01 -32.14L-30.84 -33.89L-29.45 -35.47L-27.87 -36.86L-26.12 -38.03L-24.24 -38.96L-22.25 -39.63L-20.19 -40.04L-18.09 -40.18L14.05 -40.18L16.15 -40.04L18.21 -39.63L20.20 -38.96L22.09 -38.03L23.84 -36.86L25.42 -35.47L26.80 -33.89L27.97 -32.14L28.90 -30.26L29.58 -28.27L29.99 -26.20L30.13 -24.11L31.37 -21.70L32.49 -19.29L33.38 -16.88L33.95 -14.46L34.14 -12.05L33.95 -9.64L33.38 -7.23L32.49 -4.82L31.37 -2.41L30.13 0.00L28.88 2.41L27.76 4.82L26.88 7.23L26.30 9.64L26.11 12.05L26.30 14.46L26.88 16.88L27.76 19.29L28.88 21.70L30.13 24.11L29.99 26.20L29.58 28.27L28.90 30.26L27.97 32.14L26.80 33.89L25.42 35.47L23.84 36.86L22.09 38.03L20.20 38.96L18.21 39.63L16.15 40.04L14.05 40.18L-18.09 40.18L-20.19 40.04L-22.25 39.63L-24.24 38.96L-26.12 38.03L-27.87 36.86L-29.45 35.47L-30.84 33.89L-32.01 32.14L-32.94 30.26L-33.61 28.27L-34.02 26.20L-34.16 24.11L-34.16 0.00" fill="none" stroke="#343b6e" stroke-dasharray="2 3" stroke-width="0.65"/>
+      <circle cx="-34.16" cy="0.00" r="2.8" fill="#3ee0d0"/>
+    </g>
+
+    <text x="24" y="280" font-family="'Arial Black', 'Segoe UI Black', system-ui, sans-serif" font-size="22" font-weight="900" fill="#f4f1ff">Parkside</text>
+    <text x="24" y="304" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">Wide straights, sweeping 40 m bends and</text>
+    <text x="24" y="323" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">a gentle S-curve through the park.</text>
+
+    <line x1="24" y1="344" x2="358" y2="344" stroke="#343b6e" stroke-width="1"/>
+    <text x="24" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#3ee0d0">18 item boxes</text>
+    <text x="144" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" fill="#a3a8cf">1 boost · 1 ramp · 1 hazard · 180 s cap</text>
+  </g>
+
+  <!-- Card 3: Harbour Hairpins -->
+  <g transform="translate(818, 0)">
+    <rect x="1" y="1" width="380" height="388" rx="20" fill="url(#card-bg)" stroke="#343b6e" stroke-width="2"/>
+    <rect x="24" y="24" width="66" height="24" rx="12" fill="#361816" stroke="#ff5a36" stroke-width="1"/>
+    <text x="57" y="40" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="800" fill="#ff5a36" letter-spacing="0.8">HARD</text>
+    <text x="356" y="40" text-anchor="end" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="600" fill="#a3a8cf">~947 m · 125 segs</text>
+
+    <!-- Exact Track Map (Harbour Hairpins from polylineTrack) -->
+    <g transform="translate(190, 152) scale(1.75)">
+      <path d="M-37.58 11.80L-37.58 -21.79L-37.52 -22.75L-37.36 -23.57L-37.09 -24.36L-36.72 -25.11L-36.25 -25.81L-35.70 -26.44L-35.07 -26.99L-34.38 -27.45L-33.63 -27.82L-32.83 -28.09L-32.01 -28.26L-31.06 -28.32L-4.35 -28.32L-3.47 -28.25L-2.75 -28.08L-2.07 -27.79L-1.44 -27.41L-0.88 -26.93L-0.40 -26.37L-0.01 -25.74L0.27 -25.05L0.44 -24.34L0.50 -23.60L0.44 -22.86L0.27 -22.14L-0.01 -21.46L-0.40 -20.83L-0.88 -20.27L-1.44 -19.79L-2.07 -19.40L-2.75 -19.12L-3.47 -18.95L-4.35 -18.88L-17.84 -18.88L-19.59 -18.74L-21.45 -18.30L-23.21 -17.57L-24.83 -16.57L-26.28 -15.33L-27.52 -13.88L-28.52 -12.26L-29.25 -10.50L-29.69 -8.64L-29.84 -6.74L-29.69 -4.84L-29.25 -2.99L-28.52 -1.23L-27.52 0.40L-26.28 1.85L-24.83 3.09L-23.21 4.08L-21.45 4.81L-19.59 5.26L-17.84 5.39L7.91 5.39L8.03 5.50L9.47 6.55L11.30 7.43L13.49 7.81L15.69 7.43L17.52 6.55L18.95 5.50L20.12 4.50L21.06 3.70L21.73 3.21L22.01 3.07L21.92 3.09L21.83 3.07L22.11 3.21L22.78 3.70L24.69 5.33L27.16 5.44L28.18 5.58L29.18 5.81L30.16 6.13L31.11 6.53L32.01 7.02L32.87 7.59L33.67 8.23L34.42 8.94L35.09 9.71L35.70 10.54L36.23 11.43L36.67 12.35L37.03 13.32L37.31 14.31L37.49 15.32L37.58 16.34L37.58 17.37L37.49 18.39L37.31 19.41L37.03 20.40L36.67 21.36L36.23 22.29L35.70 23.17L35.09 24.00L34.42 24.78L33.67 25.49L32.87 26.13L32.01 26.69L31.11 27.18L30.16 27.58L29.18 27.90L28.18 28.13L27.16 28.27L26.05 28.32L-27.72 28.32L-28.76 28.27L-29.71 28.13L-30.64 27.89L-31.55 27.57L-32.41 27.16L-33.24 26.67L-34.01 26.10L-34.72 25.45L-35.36 24.74L-35.93 23.97L-36.42 23.15L-36.83 22.28L-37.16 21.38L-37.39 20.45L-37.53 19.50L-37.58 18.45Z M-45.00 11.80L-45.00 -22.04L-44.89 -23.72L-44.54 -25.49L-43.96 -27.21L-43.16 -28.83L-42.15 -30.33L-40.96 -31.69L-39.60 -32.89L-38.09 -33.89L-36.47 -34.69L-34.76 -35.27L-32.98 -35.63L-31.30 -35.74L-4.06 -35.74L-2.31 -35.60L-0.45 -35.15L1.31 -34.42L2.93 -33.43L4.38 -32.19L5.62 -30.74L6.62 -29.11L7.35 -27.35L7.79 -25.50L7.94 -23.60L7.79 -21.70L7.35 -19.85L6.62 -18.08L5.62 -16.46L4.38 -15.01L2.93 -13.77L1.31 -12.78L-0.45 -12.05L-2.31 -11.60L-4.06 -11.46L-17.55 -11.46L-18.43 -11.39L-19.15 -11.22L-19.83 -10.94L-20.46 -10.55L-21.02 -10.07L-21.50 -9.51L-21.89 -8.88L-22.17 -8.20L-22.34 -7.48L-22.40 -6.74L-22.34 -6.01L-22.17 -5.29L-21.89 -4.61L-21.50 -3.98L-21.02 -3.41L-20.46 -2.93L-19.83 -2.55L-19.15 -2.26L-18.43 -2.09L-17.55 -2.02L10.65 -2.02L12.63 -0.32L13.30 0.16L13.58 0.30L13.49 0.28L13.40 0.30L13.69 0.16L14.35 -0.32L15.29 -1.13L16.46 -2.13L17.90 -3.18L19.72 -4.06L21.92 -4.44L24.12 -4.06L25.94 -3.18L27.38 -2.13L27.58 -1.96L27.83 -1.95L29.51 -1.72L31.16 -1.35L32.77 -0.82L34.33 -0.16L35.82 0.65L37.24 1.58L38.56 2.64L39.78 3.81L40.90 5.08L41.90 6.45L42.76 7.91L43.50 9.44L44.09 11.02L44.55 12.65L44.85 14.32L45.00 16.01L45.00 17.70L44.85 19.39L44.55 21.06L44.09 22.69L43.50 24.28L42.76 25.81L41.90 27.26L40.90 28.63L39.78 29.91L38.56 31.08L37.24 32.13L35.82 33.07L34.33 33.87L32.77 34.54L31.16 35.06L29.51 35.44L27.83 35.66L26.22 35.74L-27.90 35.74L-29.49 35.66L-31.16 35.41L-32.80 35.00L-34.39 34.43L-35.91 33.71L-37.36 32.84L-38.72 31.84L-39.97 30.70L-41.10 29.45L-42.11 28.10L-42.97 26.65L-43.70 25.12L-44.26 23.53L-44.67 21.90L-44.92 20.23L-45.00 18.63Z" fill="#242a52" fill-rule="evenodd" stroke="#ff5a36" stroke-width="1.2"/>
+      <path d="M-41.29 11.80L-41.29 -21.91L-41.20 -23.23L-40.95 -24.53L-40.52 -25.78L-39.94 -26.97L-39.20 -28.07L-38.33 -29.07L-37.33 -29.94L-36.23 -30.67L-35.05 -31.26L-33.80 -31.68L-32.50 -31.94L-31.18 -32.03L-4.21 -32.03L-2.89 -31.92L-1.60 -31.62L-0.38 -31.11L0.75 -30.42L1.75 -29.56L2.61 -28.55L3.30 -27.43L3.81 -26.20L4.12 -24.92L4.22 -23.60L4.12 -22.28L3.81 -20.99L3.30 -19.77L2.61 -18.65L1.75 -17.64L0.75 -16.78L-0.38 -16.09L-1.60 -15.58L-2.89 -15.27L-4.21 -15.17L-17.69 -15.17L-19.01 -15.07L-20.30 -14.76L-21.52 -14.25L-22.65 -13.56L-23.65 -12.70L-24.51 -11.70L-25.20 -10.57L-25.71 -9.35L-26.02 -8.06L-26.12 -6.74L-26.02 -5.42L-25.71 -4.14L-25.20 -2.92L-24.51 -1.79L-23.65 -0.78L-22.65 0.08L-21.52 0.77L-20.30 1.27L-19.01 1.58L-17.69 1.69L9.28 1.69L10.33 2.59L11.39 3.35L12.44 3.87L13.49 4.05L14.55 3.87L15.60 3.35L16.65 2.59L17.71 1.69L18.76 0.78L19.81 0.02L20.87 -0.49L21.92 -0.67L22.98 -0.49L24.03 0.02L25.08 0.78L26.14 1.69L27.50 1.75L28.84 1.93L30.17 2.23L31.47 2.65L32.72 3.19L33.92 3.83L35.05 4.58L36.12 5.43L37.10 6.37L38.00 7.40L38.80 8.50L39.50 9.67L40.09 10.89L40.56 12.17L40.93 13.48L41.17 14.82L41.29 16.18L41.29 17.54L41.17 18.89L40.93 20.23L40.56 21.54L40.09 22.82L39.50 24.05L38.80 25.21L38.00 26.32L37.10 27.34L36.12 28.28L35.05 29.13L33.92 29.88L32.72 30.53L31.47 31.06L30.17 31.48L28.84 31.78L27.50 31.97L26.14 32.03L-27.81 32.03L-29.13 31.96L-30.44 31.77L-31.72 31.45L-32.97 31.00L-34.16 30.44L-35.30 29.76L-36.36 28.97L-37.34 28.08L-38.23 27.10L-39.02 26.03L-39.70 24.90L-40.26 23.70L-40.71 22.46L-41.03 21.17L-41.23 19.86L-41.29 18.54L-41.29 11.80" fill="none" stroke="#343b6e" stroke-dasharray="2 3" stroke-width="0.65"/>
+      <circle cx="-41.29" cy="11.80" r="2.8" fill="#3ee0d0"/>
+    </g>
+
+    <text x="24" y="280" font-family="'Arial Black', 'Segoe UI Black', system-ui, sans-serif" font-size="22" font-weight="900" fill="#f4f1ff">Harbour Hairpins</text>
+    <text x="24" y="304" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">A long dock straight into two tight hairpins,</text>
+    <text x="24" y="323" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="13.5" fill="#a3a8cf">a chicane and a fast sweeper home.</text>
+
+    <line x1="24" y1="344" x2="356" y2="344" stroke="#343b6e" stroke-width="1"/>
+    <text x="24" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#3ee0d0">21 item boxes</text>
+    <text x="144" y="366" font-family="'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-size="12.5" fill="#a3a8cf">1 boost · 1 ramp · 1 hazard · 180 s cap</text>
+  </g>
+</svg>

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430" role="img" aria-label="Kart Party Architecture: shared RaceSession powering browser Practice and Cloudflare Durable Object online rooms">
+  <defs>
+    <linearGradient id="arch-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1226"/>
+      <stop offset="100%" stop-color="#141936"/>
+    </linearGradient>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#3ee0d0"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#ff5a36"/>
+    </marker>
+  </defs>
+
+  <rect x="1.5" y="1.5" width="1197" height="427" rx="22" fill="url(#arch-bg)" stroke="#343b6e" stroke-width="2"/>
+
+  <!-- Header -->
+  <text x="36" y="42" font-family="'Arial Black', 'Segoe UI Black', system-ui, sans-serif" font-size="18" font-weight="900" fill="#f4f1ff" letter-spacing="0.4">SYSTEM ARCHITECTURE · ONE RULEBOOK ACROSS PRACTICE &amp; ONLINE</text>
+  <line x1="36" y1="58" x2="1164" y2="58" stroke="#343b6e" stroke-width="1"/>
+
+  <!-- Left box: apps/web -->
+  <g transform="translate(36, 82)">
+    <rect width="340" height="314" rx="18" fill="#1a1f3d" stroke="#3ee0d0" stroke-width="1.8"/>
+    <rect x="18" y="18" width="118" height="24" rx="12" fill="#133330"/>
+    <text x="77" y="34" text-anchor="middle" font-family="'Segoe UI', monospace" font-size="12" font-weight="700" fill="#3ee0d0">apps/web</text>
+    <text x="150" y="34" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" fill="#a3a8cf">React 19 + Vite</text>
+
+    <text x="18" y="70" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="17" font-weight="800" fill="#f4f1ff">Browser Client</text>
+
+    <g transform="translate(18, 88)" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="13">
+      <rect width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="21" font-weight="700" fill="#f4f1ff">Lazy-loaded 3D Stage (src/kart)</text>
+      <text x="14" y="40" fill="#a3a8cf">Three.js procedural karts, tracks &amp; VFX</text>
+
+      <rect y="64" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="85" font-weight="700" fill="#f4f1ff">Local Prediction &amp; Web Audio</text>
+      <text x="14" y="104" fill="#a3a8cf">rAF refs (no React state/frame), haptics</text>
+
+      <rect y="128" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="149" font-weight="700" fill="#f4f1ff">Unified Input Boundary</text>
+      <text x="14" y="168" fill="#a3a8cf">Keyboard (WASD/Arrows), Touch, Gamepad</text>
+    </g>
+
+    <text x="18" y="294" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#3ee0d0">Practice mode runs RaceSession locally</text>
+  </g>
+
+  <!-- Center box: packages/game -->
+  <g transform="translate(430, 82)">
+    <rect width="340" height="314" rx="18" fill="#1a1f3d" stroke="#ff5a36" stroke-width="1.8"/>
+    <rect x="18" y="18" width="136" height="24" rx="12" fill="#361816"/>
+    <text x="86" y="34" text-anchor="middle" font-family="'Segoe UI', monospace" font-size="12" font-weight="700" fill="#ff5a36">packages/game</text>
+    <text x="166" y="34" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" fill="#a3a8cf">Pure TypeScript</text>
+
+    <text x="18" y="70" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="17" font-weight="800" fill="#f4f1ff">Shared Rulebook (RaceSession)</text>
+
+    <g transform="translate(18, 88)" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="13">
+      <rect width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="21" font-weight="700" fill="#f4f1ff">20 ms Physics &amp; Swept Walls</text>
+      <text x="14" y="40" fill="#a3a8cf">Drifting, slipstream, ramps, boost pads</text>
+
+      <rect y="64" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="85" font-weight="700" fill="#f4f1ff">Tracks, Items &amp; CPU Drivers</text>
+      <text x="14" y="104" fill="#a3a8cf">3 courses, deterministic drops, 7 CPU AI</text>
+
+      <rect y="128" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="149" font-weight="700" fill="#f4f1ff">Zod Wire Protocol</text>
+      <text x="14" y="168" fill="#a3a8cf">Injected time only — zero DOM/Worker APIs</text>
+    </g>
+
+    <text x="18" y="294" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#ff5a36">Imported by both web &amp; worker</text>
+  </g>
+
+  <!-- Right box: apps/worker -->
+  <g transform="translate(824, 82)">
+    <rect width="340" height="314" rx="18" fill="#1a1f3d" stroke="#3ee0d0" stroke-width="1.8"/>
+    <rect x="18" y="18" width="122" height="24" rx="12" fill="#133330"/>
+    <text x="79" y="34" text-anchor="middle" font-family="'Segoe UI', monospace" font-size="12" font-weight="700" fill="#3ee0d0">apps/worker</text>
+    <text x="152" y="34" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" fill="#a3a8cf">Cloudflare Workers</text>
+
+    <text x="18" y="70" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="17" font-weight="800" fill="#f4f1ff">Edge API &amp; KartRoom DO</text>
+
+    <g transform="translate(18, 88)" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="13">
+      <rect width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="21" font-weight="700" fill="#f4f1ff">Hono Router + Static Assets</text>
+      <text x="14" y="40" fill="#a3a8cf">/api/rooms, /ws upgrade, SPA serving</text>
+
+      <rect y="64" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="85" font-weight="700" fill="#f4f1ff">Authoritative KartRoom DO</text>
+      <text x="14" y="104" fill="#a3a8cf">10 Hz alarm tick, roster, wins &amp; phases</text>
+
+      <rect y="128" width="304" height="52" rx="10" fill="#12162e" stroke="#343b6e"/>
+      <text x="14" y="149" font-weight="700" fill="#f4f1ff">SQLite KV + Auto-Cleanup</text>
+      <text x="14" y="168" fill="#a3a8cf">Persists before ack · 6 h idle wipe</text>
+    </g>
+
+    <text x="18" y="294" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#3ee0d0">Live in workerd locally &amp; edge in prod</text>
+  </g>
+
+  <!-- Connection arrows -->
+  <!-- Web <-> Game (uses locally) -->
+  <line x1="378" y1="214" x2="424" y2="214" stroke="#ff5a36" stroke-width="2.5" marker-end="url(#arrow-orange)"/>
+  <!-- Worker <-> Game (runs authoritatively) -->
+  <line x1="822" y1="214" x2="776" y2="214" stroke="#ff5a36" stroke-width="2.5" marker-end="url(#arrow-orange)"/>
+  <!-- Web <-> Worker (WebSocket loop over top) -->
+  <path d="M 206 80 L 206 66 L 994 66 L 994 80" fill="none" stroke="#3ee0d0" stroke-width="2.2" marker-start="url(#arrow-teal)" marker-end="url(#arrow-teal)"/>
+  <rect x="470" y="54" width="260" height="22" rx="11" fill="#0f1226" stroke="#3ee0d0" stroke-width="1.2"/>
+  <text x="600" y="69" text-anchor="middle" font-family="'Avenir Next', 'Segoe UI', sans-serif" font-size="11.5" font-weight="700" fill="#3ee0d0">WebSocket: Intents ↑ · 10 Hz Snapshots ↓</text>
+</svg>
