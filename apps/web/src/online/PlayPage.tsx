@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { nicknameSchema, roomCodeSchema } from "@kart-party/game";
+import { Button, LinkButton, TextField } from "../ui/primitives";
+import { saveName, savedName } from "../live/identity";
+import { createRoom, roomExists } from "../api/rooms";
+
+export function PlayPage() {
+  const navigate = useNavigate();
+  const [name, setName] = useState(savedName);
+  const [code, setCode] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [busy, setBusy] = useState<"create" | "join" | null>(null);
+
+  const checkName = () => {
+    const parsed = nicknameSchema.safeParse(name);
+    if (!parsed.success) {
+      setNameError(parsed.error.issues[0]?.message ?? "Choose a name.");
+      return undefined;
+    }
+    saveName(parsed.data);
+    return parsed.data;
+  };
+
+  return (
+    <main className="mx-auto grid max-w-xl gap-6 px-4 pb-16 pt-8">
+      <header>
+        <LinkButton to="/" variant="secondary" className="mb-4 min-h-10 px-3 text-base">
+          ← Home
+        </LinkButton>
+        <h1 className="wordmark text-4xl sm:text-5xl">Race friends</h1>
+        <p className="text-muted">
+          Up to eight people, each on their own device. Share the four-letter code.
+        </p>
+      </header>
+      <div className="panel grid gap-5 p-5">
+        <TextField
+          label="Your name"
+          value={name}
+          maxLength={16}
+          autoComplete="nickname"
+          onChange={(event) => {
+            setName(event.target.value);
+            setNameError("");
+          }}
+          error={nameError}
+        />
+        <Button
+          disabled={busy !== null}
+          onClick={async () => {
+            if (!checkName()) return;
+            setBusy("create");
+            const created = await createRoom();
+            setBusy(null);
+            if (created.ok) navigate(`/r/${created.code}`);
+            else setNameError(created.message);
+          }}
+        >
+          {busy === "create" ? "Creating…" : "Create a room"}
+        </Button>
+      </div>
+      <form
+        className="panel grid gap-4 p-5"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!checkName()) return;
+          const parsed = roomCodeSchema.safeParse(code);
+          if (!parsed.success) {
+            setCodeError("A room code is four letters.");
+            return;
+          }
+          setBusy("join");
+          const exists = await roomExists(parsed.data);
+          setBusy(null);
+          if (exists) navigate(`/r/${parsed.data}`);
+          else setCodeError("No room has that code. Check it with the host.");
+        }}
+      >
+        <TextField
+          label="Room code"
+          value={code}
+          maxLength={4}
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          inputMode="text"
+          className="[&_input]:font-mono [&_input]:text-2xl [&_input]:uppercase [&_input]:tracking-[0.4em]"
+          onChange={(event) => {
+            setCode(event.target.value.toUpperCase());
+            setCodeError("");
+          }}
+          error={codeError}
+        />
+        <Button type="submit" variant="secondary" disabled={busy !== null}>
+          {busy === "join" ? "Checking…" : "Join room"}
+        </Button>
+      </form>
+    </main>
+  );
+}

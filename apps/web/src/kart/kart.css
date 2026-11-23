@@ -1,0 +1,1677 @@
+.kart-phone,
+.kart-stage {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.kart-hud-stack,
+.kart-action-rail {
+  display: contents;
+}
+.kart-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: var(--accent);
+}
+.kart-contact-cue {
+  position: fixed;
+  inset: 0;
+  border: 0.3rem solid var(--accent);
+  opacity: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.kart-contact-settings {
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.kart-contact-settings label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 44px;
+}
+.kart-contact-settings input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+.kart-phone-hud {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) 1.3fr;
+  gap: 1rem;
+  align-items: center;
+}
+.kart-phone-hud svg {
+  width: 100%;
+  max-height: 150px;
+}
+.kart-map-road {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 16;
+}
+.kart-map-line {
+  stroke: var(--foreground);
+  stroke-width: 2;
+}
+.kart-map-driver {
+  fill: var(--accent);
+  stroke: var(--foreground);
+  stroke-width: 0.4;
+}
+.kart-controller {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 0.75rem;
+  align-items: center;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 180px;
+}
+.kart-steering {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.kart-steering input {
+  width: 100%;
+  height: 64px;
+  accent-color: var(--accent);
+  touch-action: none;
+}
+.kart-steering input:focus-visible {
+  outline: 3px solid var(--highlight);
+  outline-offset: 4px;
+}
+.kart-pedals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  align-items: center;
+}
+.kart-pedal {
+  display: grid;
+  place-content: center;
+  gap: 0.2rem;
+  min-height: 64px;
+  padding: 0.6rem 0.3rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  touch-action: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    opacity 0.16s ease;
+  font-size: 0.75rem;
+}
+.kart-pedal strong {
+  font-size: 1.5rem;
+}
+.kart-pedal-gas {
+  grid-column: 1/-1;
+  min-height: 94px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.kart-pedal[aria-pressed="true"] {
+  background: var(--highlight);
+  color: var(--highlight-foreground);
+  transform: scale(0.96);
+}
+.kart-pedal:disabled {
+  opacity: 0.45;
+}
+.kart-pedal:focus-visible {
+  outline: 3px solid var(--highlight);
+  outline-offset: 3px;
+}
+.kart-help {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.kart-result {
+  font-size: 2rem;
+  font-weight: 800;
+}
+.kart-race-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.kart-race-heading h2 {
+  font-size: clamp(1.5rem, 3vw, 3rem);
+  font-weight: 900;
+}
+.kart-time {
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+}
+.kart-time small {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+}
+.kart-stage-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
+  gap: 1.5rem;
+}
+.kart-viewport {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1.3;
+  max-height: 62vh;
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  background: var(--surface);
+}
+.kart-viewport canvas,
+.kart-canvas-mount canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.kart-paused {
+  position: absolute;
+  inset: 40% 0;
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 900;
+  background: var(--background);
+}
+.kart-leaderboard h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.kart-leaderboard ol {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.kart-leaderboard li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0.3rem 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.kart-leaderboard li > span:last-child {
+  grid-column: 2;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.kart-leaderboard p {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .kart-stage-layout {
+    grid-template-columns: 1fr;
+  }
+  .kart-viewport {
+    max-height: none;
+  }
+  .kart-leaderboard {
+    max-height: 200px;
+    overflow: auto;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .kart-phone {
+    grid-template-columns: 1fr 1.5fr;
+  }
+  .kart-phone > h1,
+  .kart-phone > p {
+    grid-column: 1;
+  }
+  .kart-controller-shell {
+    grid-column: 2;
+    grid-row: 1/6;
+  }
+  .kart-phone-hud svg {
+    max-height: 70px;
+  }
+  .kart-help {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kart-pedal {
+    transition:
+      opacity 0.1s ease,
+      background 0.1s ease,
+      color 0.1s ease;
+  }
+  .kart-pedal[aria-pressed="true"] {
+    transform: none;
+  }
+}
+
+body:has(.kart-phone) {
+  overscroll-behavior: none;
+}
+.kart-controller {
+  -webkit-touch-callout: none;
+}
+
+.kart-map-gate {
+  fill: var(--background);
+  stroke: var(--foreground);
+  stroke-width: 0.7;
+  transition: fill 0.18s ease;
+}
+.kart-map-gate-passed {
+  fill: var(--highlight);
+}
+.kart-telemetry {
+  display: grid;
+  gap: 0.45rem;
+}
+.kart-driving-state {
+  font-size: 0.95rem;
+  font-weight: 800;
+  min-height: 1.5em;
+}
+.kart-drift-meter {
+  height: 0.65rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.kart-drift-meter > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--highlight);
+}
+.kart-telemetry-labels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.kart-finish-card {
+  padding: 1.2rem;
+  display: grid;
+  gap: 0.6rem;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+.kart-finish-card > strong {
+  font-size: 1.5rem;
+}
+.kart-control-options,
+.kart-drive-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.kart-drive-choices button {
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-size: 0.7rem;
+  background: var(--surface);
+  color: var(--foreground);
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+.kart-drive-choices button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.kart-drive-choices button:focus-visible {
+  outline: 3px solid var(--highlight);
+  outline-offset: 2px;
+}
+.kart-input-settings {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--foreground);
+  margin-block: 0.6rem;
+  max-width: 32rem;
+}
+.kart-input-settings input[type="range"],
+.kart-input-settings button {
+  min-height: 44px;
+}
+.kart-input-settings input[type="range"] {
+  width: 100%;
+}
+.kart-input-settings button,
+.kart-mouse-steering {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 0.6rem;
+  transition:
+    background 0.16s ease,
+    opacity 0.16s ease;
+}
+.kart-mouse-steering {
+  min-height: 70px;
+  background: var(--surface);
+  touch-action: none;
+  user-select: none;
+  margin-block: 0.5rem;
+}
+.kart-mouse-steering[aria-disabled="true"] {
+  opacity: 0.5;
+}
+.kart-mouse-steering:focus-visible {
+  outline: 3px solid var(--highlight);
+  outline-offset: 2px;
+}
+.kart-gamepad-status {
+  font-size: 0.75rem;
+  margin-block: 0.25rem;
+}
+.kart-control-options button {
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-size: 0.7rem;
+  background: var(--surface);
+  color: var(--foreground);
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+.kart-control-options button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.kart-control-options button:focus-visible {
+  outline: 3px solid var(--highlight);
+  outline-offset: 2px;
+}
+.kart-controller[data-swapped="true"] {
+  grid-template-columns: 1.4fr 1fr;
+}
+.kart-controller[data-swapped="true"] .kart-steering {
+  grid-column: 2;
+  grid-row: 1;
+}
+.kart-controller[data-swapped="true"] .kart-pedals {
+  grid-column: 1;
+  grid-row: 1;
+}
+.kart-thumb-pad {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 160px;
+  min-height: 100px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  touch-action: none;
+}
+.kart-thumb-pad:focus-within {
+  outline: 3px solid var(--highlight);
+  outline-offset: 4px;
+}
+.kart-thumb-pad[data-disabled="true"] {
+  opacity: 0.45;
+}
+.kart-thumb-track {
+  position: absolute;
+  inset: 40% 10%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+}
+.kart-thumb-track > span {
+  width: 1px;
+  height: 1.7rem;
+  background: var(--line);
+}
+.kart-thumb-knob {
+  position: absolute;
+  left: calc(50% + var(--steer) * 36%);
+  top: 50%;
+  width: 38%;
+  aspect-ratio: 1;
+  border: 2px solid var(--foreground);
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+/* Up holds the throttle, down brakes: the knob rides with the thumb. */
+.kart-thumb-pad[data-pedals="true"] .kart-thumb-knob {
+  top: calc(50% + var(--pedal, 0) * 24%);
+}
+.kart-thumb-pad[data-pedal="gas"] .kart-thumb-knob {
+  background: var(--highlight);
+}
+.kart-thumb-pad[data-pedal="brake"] .kart-thumb-knob {
+  background: var(--surface);
+  border-color: var(--highlight);
+}
+.kart-thumb-pedals {
+  position: absolute;
+  inset: 4% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+.kart-pedals[data-pad="true"] {
+  grid-template-columns: 1fr;
+}
+.kart-pedals[data-pad="true"] .kart-pedal-drift {
+  min-height: 94px;
+}
+.kart-thumb-pad input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .kart-phone .kart-telemetry {
+    grid-column: 1;
+  }
+  .kart-controller-shell {
+    align-self: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kart-thumb-knob {
+    transition-duration: 0.1s;
+  }
+}
+
+.kart-canvas-root,
+.kart-canvas-mount {
+  width: 100%;
+  height: 100%;
+}
+.kart-canvas-mount {
+  display: grid;
+  place-content: center;
+}
+.kart-canvas-mount:has(canvas) {
+  display: block;
+}
+.kart-canvas-recovery {
+  position: absolute;
+  inset: 20% 10%;
+  padding: 1rem;
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: var(--radius-panel);
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+}
+.kart-canvas-recovery button,
+.kart-canvas-mount > button {
+  min-height: 44px;
+  border: 1px solid var(--accent);
+  padding: 0.7rem;
+  border-radius: var(--radius-control);
+  transition: background 0.16s ease;
+}
+
+.kart-phone:not(:has(.kart-finish-card)) {
+  gap: 0.65rem;
+}
+.kart-phone:not(:has(.kart-finish-card)) .kart-phone-hud svg {
+  max-height: 96px;
+}
+
+/* Phones own the driving experience; the projector is a whole-room broadcast. */
+.kart-phone-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+.kart-phone-heading .phone-prompt {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.kart-phone-heading .kart-eyebrow {
+  font-size: 0.65rem;
+  order: 1;
+}
+.kart-phone > p[role="status"] {
+  font-size: 0.8rem;
+}
+.kart-phone .kart-phone-hud {
+  display: block;
+}
+.kart-phone-hud > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+.kart-driver-view {
+  position: relative;
+  min-width: 0;
+}
+.kart-driver-viewport {
+  position: relative;
+  height: clamp(150px, 23dvh, 230px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--background);
+}
+.kart-driver-map {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    width 160ms ease,
+    height 160ms ease;
+}
+.kart-driver-viewport[data-view="chase"] .kart-driver-map {
+  inset: auto 0.5rem 0.5rem auto;
+  width: min(7rem, 30%);
+  height: min(7rem, calc(100% - 4.5rem));
+  z-index: 2;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--background);
+  opacity: 0;
+}
+.kart-driver-viewport[data-view="chase"][data-inset="true"] .kart-driver-map {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kart-driver-map {
+    transition: opacity 100ms ease;
+  }
+}
+.kart-view-preferences {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.kart-inset-toggle {
+  min-height: 44px;
+  padding: 0.35rem 0.65rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+}
+.kart-inset-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.kart-inset-toggle:hover {
+  color: var(--accent);
+}
+.kart-driver-map svg {
+  width: 100%;
+  height: 100%;
+}
+.kart-driver-viewport .kart-canvas-root {
+  position: relative;
+}
+.kart-driver-viewport .kart-canvas-root:has(.kart-canvas-recovery) canvas {
+  visibility: hidden;
+}
+.kart-driver-viewport .kart-canvas-mount:not(:has(canvas)) {
+  position: relative;
+  align-content: end;
+  font-size: 0.75rem;
+  padding: 0.5rem;
+}
+.kart-driver-viewport .kart-canvas-mount > p {
+  background: var(--background);
+  padding: 0.4rem;
+}
+.kart-driver-loading {
+  position: relative;
+  background: var(--background);
+  font-size: 0.8rem;
+  padding: 0.5rem;
+}
+.kart-start-preview {
+  position: relative;
+  isolation: isolate;
+}
+.kart-start-preview .kart-countdown {
+  position: absolute;
+  z-index: 2;
+}
+.kart-start-preview .kart-countdown span {
+  font-size: 4rem;
+}
+.kart-view-toggle {
+  min-height: 44px;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  color: var(--muted);
+  transition: color 0.18s ease;
+}
+.kart-view-toggle:hover,
+.kart-view-toggle:focus-visible {
+  color: var(--accent);
+}
+.kart-view-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.kart-phone .kart-controller {
+  min-height: 144px;
+}
+.kart-phone .kart-pedal {
+  min-height: 52px;
+}
+.kart-phone .kart-pedal-gas {
+  min-height: 76px;
+}
+.kart-phone .kart-steering {
+  gap: 0.4rem;
+}
+.kart-phone .kart-thumb-pad {
+  min-height: 100px;
+  max-height: 132px;
+}
+.kart-phone .kart-telemetry {
+  gap: 0.25rem;
+}
+.kart-phone .kart-driving-state {
+  font-size: 0.8rem;
+}
+.kart-phone .kart-telemetry-labels {
+  font-size: 0.65rem;
+}
+.question-experience[data-kind="kart"] {
+  gap: 0.5rem;
+}
+.question-experience[data-kind="kart"] .question-direction {
+  min-height: 2rem;
+  padding-block: 0.25rem;
+  font-size: 0.8rem;
+}
+.kart-stage-layout {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+.kart-spectator-viewport {
+  aspect-ratio: 1;
+  max-height: 55vh;
+  background: radial-gradient(ellipse at center, var(--surface), var(--background) 75%);
+}
+.kart-broadcast-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kart-map-orbit {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 0.5 2;
+  stroke-width: 0.3;
+}
+.kart-map-kerb {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.8;
+  stroke-dasharray: 2 2;
+}
+.kart-map-centreline {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 0.25;
+  stroke-dasharray: 1.5 2;
+}
+.kart-map-checkpoint {
+  stroke: var(--line);
+  stroke-width: 0.3;
+}
+.kart-map-finish {
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+  stroke-dasharray: 1 1;
+}
+.kart-map-wordmark {
+  fill: var(--accent);
+  text-anchor: middle;
+  font-size: 20px;
+  font-weight: 900;
+}
+.kart-map-caption {
+  fill: var(--muted);
+  text-anchor: middle;
+  font-size: 2.2px;
+  letter-spacing: 0.6px;
+}
+.kart-map-sector {
+  fill: var(--muted);
+  text-anchor: middle;
+  font-size: 2.5px;
+}
+.kart-map-dot {
+  fill: var(--accent);
+  stroke: var(--foreground);
+  stroke-width: 0.3;
+}
+.kart-map-dot[data-finished="true"] {
+  fill: var(--highlight);
+}
+.kart-map-leader-ring {
+  fill: none;
+  stroke: var(--highlight);
+  stroke-width: 0.35;
+}
+.kart-map-number {
+  fill: var(--foreground);
+  stroke: var(--background);
+  stroke-width: 0.8px;
+  paint-order: stroke;
+  text-anchor: middle;
+  font-size: 4px;
+  font-weight: 900;
+}
+.kart-map-summary {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+.kart-map-summary strong {
+  font-size: clamp(2rem, 4vw, 4rem);
+  color: var(--highlight);
+}
+.kart-map-summary span {
+  font-size: clamp(1rem, 1.5vw, 2rem);
+}
+.kart-leaderboard {
+  min-width: 0;
+}
+.kart-leaderboard h3 {
+  font-size: clamp(1.4rem, 2.2vw, 2.7rem);
+}
+.kart-leaderboard li {
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  padding-bottom: 0.35rem;
+  font-size: clamp(1rem, 1.65vw, 2rem);
+}
+.kart-leaderboard li strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kart-leaderboard li small {
+  color: var(--muted);
+  font-size: 0.65em;
+}
+.kart-leaderboard li > span.kart-board-result {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 0.7em;
+}
+.kart-leaderboard p {
+  font-size: clamp(0.85rem, 1.1vw, 1.4rem);
+}
+.kart-leaderboard ol {
+  gap: 0.35rem;
+  margin-block: 0.65rem;
+}
+.kart-field-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.kart-field-heading h4 {
+  font-size: clamp(0.9rem, 1.2vw, 1.5rem);
+  color: var(--muted);
+}
+.kart-field-heading button {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+.kart-field-heading button:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+.kart-field-heading button:focus-visible {
+  outline: 2px solid var(--accent);
+}
+@media (max-width: 700px) {
+  .kart-stage-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kart-leaderboard {
+    max-height: none;
+    overflow: visible;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .kart-phone {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.9fr);
+    gap: 0.4rem 0.8rem;
+  }
+  .kart-phone > .kart-phone-heading,
+  .kart-phone > p,
+  .kart-phone .kart-phone-hud,
+  .kart-phone > .kart-driver-view,
+  .kart-phone .kart-telemetry {
+    grid-column: 1;
+  }
+  .kart-phone .kart-controller-shell {
+    grid-column: 2;
+    grid-row: 1 / 8;
+    align-self: center;
+  }
+  .kart-driver-viewport {
+    height: 160px;
+  }
+}
+
+.stage-safe:has(.kart-stage) .stage-presentation {
+  padding-bottom: 0;
+  gap: 0.75rem;
+}
+.kart-leaderboard li {
+  padding-bottom: 0.2rem;
+}
+.kart-leaderboard ol {
+  gap: 0.2rem;
+  margin-block: 0.4rem;
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .kart-phone .kart-controller-shell {
+    align-self: start;
+    position: sticky;
+    top: 0;
+  }
+}
+
+.kart-driver-view .kart-view-toggle {
+  position: absolute;
+  z-index: 4;
+  top: 0.4rem;
+  right: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding-inline: 0.65rem;
+  color: var(--foreground);
+  background: var(--surface);
+  text-decoration: none;
+  font-size: 0.7rem;
+}
+
+.kart-power-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.kart-power-control p {
+  margin: 0;
+  font-size: 0.75rem;
+  flex: 1 1 10rem;
+}
+.kart-stage-view {
+  position: relative;
+  min-width: 0;
+}
+.kart-stage-3d {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Race and grid fill the screen on every window. The view is the page, and the
+ * controls sit on it. The finish layout keeps the result card and the dock.
+ */
+.phone-shell[data-tab="play"]:has(
+    .kart-phone:is([data-layout="race"], [data-layout="grid"])
+  )
+  :is(.phone-bar, .phone-tabbar, .phone-dock, .skin-status, .question-direction) {
+  display: none;
+}
+.phone-shell[data-tab="play"]:has(
+    .kart-phone:is([data-layout="race"], [data-layout="grid"])
+  )
+  .phone-scroll {
+  padding: 0;
+  overflow: hidden;
+}
+.question-experience:has(.kart-phone:is([data-layout="race"], [data-layout="grid"])) {
+  padding: 0;
+  gap: 0;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) {
+  --race-edge: max(0.45rem, env(safe-area-inset-left), env(safe-area-inset-right));
+  --race-top: max(0.4rem, env(safe-area-inset-top));
+  --race-bottom: max(0.45rem, env(safe-area-inset-bottom));
+  --kart-pad-height: clamp(5.75rem, 21dvh, 8.25rem);
+  --kart-controls-clearance: calc(
+    var(--race-bottom) + max(var(--kart-pad-height), 6.2rem) + 0.85rem
+  );
+  position: relative;
+  display: block;
+  height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  > :is(.kart-phone-heading, p, .kart-help, .kart-result) {
+  display: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-driver-view {
+  position: absolute;
+  inset: 0;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-driver-viewport {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Heads-up display tucked cleanly into the top-left corner. */
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-hud-stack {
+  position: absolute;
+  z-index: 5;
+  top: var(--race-top);
+  left: var(--race-edge);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  max-width: min(13rem, 48%);
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-phone-hud {
+  position: static;
+  margin: 0;
+  max-width: 100%;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-phone-hud > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  border-radius: var(--radius-control);
+  padding: 0.14rem 0.45rem;
+  background: color-mix(in oklab, var(--background) 62%, transparent);
+  font-size: 0.66rem;
+  line-height: 1.2;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-phone-hud
+  :is(p, strong) {
+  margin: 0;
+  white-space: nowrap;
+}
+.kart-phone[data-layout="race"] .kart-phone-hud > div > p:last-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-telemetry {
+  position: static;
+  translate: none;
+  width: fit-content;
+  min-width: min(9rem, 100%);
+  max-width: 100%;
+  gap: 0.14rem;
+  border-radius: var(--radius-control);
+  padding: 0.16rem 0.45rem;
+  background: color-mix(in oklab, var(--background) 60%, transparent);
+  text-align: left;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-telemetry
+  > p:not(.kart-driving-state) {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-driving-state {
+  min-height: 0;
+  overflow: hidden;
+  font-size: 0.64rem;
+  line-height: 1.15;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-tier-gauge {
+  gap: 0.12rem;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-tier-segments {
+  gap: 0.18rem;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-tier-segment {
+  min-height: 0.3rem;
+  padding: 0;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-tier-segment small {
+  display: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-tier-gauge[data-level="0"]
+  output {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-tier-gauge:not([data-level="0"])
+  output {
+  font-size: 0.6rem;
+  line-height: 1.1;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-telemetry-labels {
+  font-size: 0.62rem;
+  line-height: 1.1;
+  justify-content: flex-start;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-telemetry-labels
+  span:first-child {
+  display: none;
+}
+
+/* Top-right utility cluster: compact controls and map/graphics switches. */
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-driver-view
+  .kart-view-toggle {
+  top: var(--race-top);
+  right: var(--race-edge);
+  min-height: 1.85rem;
+  min-width: 4.3rem;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-align: center;
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-controller-shell {
+  position: static;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-control-options {
+  position: absolute;
+  z-index: 7;
+  top: var(--race-top);
+  right: calc(var(--race-edge) + 4.6rem);
+  bottom: auto;
+  left: auto;
+  translate: none;
+  flex-direction: row;
+  width: auto;
+  margin: 0;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-control-options
+  button {
+  width: auto;
+  min-height: 1.85rem;
+  padding: 0.15rem 0.48rem;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-view-preferences {
+  position: absolute;
+  z-index: 5;
+  top: calc(var(--race-top) + 2.1rem);
+  right: var(--race-edge);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  width: auto;
+  max-width: min(12rem, 48%);
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-view-preferences
+  :is(button, select) {
+  pointer-events: auto;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-inset-toggle {
+  position: static;
+  min-height: 1.75rem;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.65rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  background: color-mix(in oklab, var(--surface) 74%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-graphics {
+  flex-wrap: nowrap;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-graphics label,
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-graphics-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-graphics select {
+  min-height: 1.75rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.65rem;
+  background: color-mix(in oklab, var(--surface) 74%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-driver-viewport[data-view="chase"]
+  .kart-driver-map {
+  inset: calc(var(--race-top) + 4.1rem) var(--race-edge) auto auto;
+  translate: none;
+  width: min(5rem, 22%);
+  height: min(5rem, 22%);
+  background: color-mix(in oklab, var(--background) 68%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-sound-prompt {
+  top: calc(var(--race-top) + 4.1rem);
+  right: var(--race-edge);
+  left: auto;
+  bottom: auto;
+  translate: none;
+  min-height: 1.95rem;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.72rem;
+  border-width: 1.5px;
+  background: color-mix(in oklab, var(--surface) 88%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-input-settings {
+  position: absolute;
+  z-index: 12;
+  top: calc(var(--race-top) + 2.2rem);
+  right: var(--race-edge);
+  left: auto;
+  margin: 0;
+  width: min(22rem, calc(100% - 2 * var(--race-edge)));
+  max-height: calc(100dvh - var(--race-top) - 3rem);
+  overflow-y: auto;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Far-left action rail: item and recovery controls tucked above the steering pad. */
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-action-rail {
+  position: absolute;
+  z-index: 6;
+  left: var(--race-edge);
+  bottom: var(--kart-controls-clearance);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.26rem;
+  max-width: min(12rem, 46%);
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-power-control {
+  position: static;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-item-roulette {
+  width: 1.85rem;
+  height: 1.85rem;
+  font-size: 1.05rem;
+  border-width: 1.5px;
+  flex: 0 0 auto;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-power-control button {
+  pointer-events: auto;
+  min-height: 1.85rem;
+  padding: 0.16rem 0.5rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  gap: 0.25rem;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-power-control p {
+  margin: 0;
+  flex: 1 0 100%;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  border-radius: var(--radius-control);
+  padding: 0.12rem 0.38rem;
+  background: color-mix(in oklab, var(--background) 68%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-power-control
+  p[data-hint],
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-power-control p:empty {
+  display: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-recovery {
+  position: static;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  max-width: 100%;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-recovery button {
+  pointer-events: auto;
+  min-height: 1.8rem;
+  padding: 0.16rem 0.48rem;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  background: color-mix(in oklab, var(--surface) 74%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-recovery
+  p:not(:empty) {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  border-radius: var(--radius-control);
+  padding: 0.12rem 0.38rem;
+  background: color-mix(in oklab, var(--background) 68%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-recovery p:empty {
+  display: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-gamepad-status {
+  position: absolute;
+  z-index: 6;
+  right: var(--race-edge);
+  bottom: var(--kart-controls-clearance);
+  margin: 0;
+  border-radius: var(--radius-control);
+  padding: 0.14rem 0.45rem;
+  background: color-mix(in oklab, var(--background) 68%, transparent);
+  font-size: 0.65rem;
+  pointer-events: none;
+}
+
+/* Thumb controls along the bottom corners. */
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-keyboard-hint {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: var(--race-bottom);
+  translate: -50% 0;
+  margin: 0;
+  pointer-events: none;
+  border-radius: var(--radius-control);
+  padding: 0.14rem 0.5rem;
+  background: color-mix(in oklab, var(--background) 72%, transparent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-keyboard-hint {
+    display: none;
+  }
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-controller {
+  position: absolute;
+  z-index: 6;
+  inset-inline: var(--race-edge);
+  bottom: var(--race-bottom);
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 0;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-controller[data-swapped="true"] {
+  flex-direction: row-reverse;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-controller > * {
+  pointer-events: auto;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-steering {
+  width: min(12rem, 26%);
+  flex: 0 0 auto;
+  gap: 0.2rem;
+  border-radius: var(--radius-panel);
+  padding: 0.25rem;
+  background: color-mix(in oklab, var(--background) 38%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-steering label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-steering input {
+  height: 44px;
+}
+/* Steering only. Speed is the pedal buttons, so the zone stays compact at the corner. */
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-thumb-pad {
+  width: 100%;
+  height: var(--kart-pad-height);
+  min-height: 4.75rem;
+  max-height: none;
+  aspect-ratio: auto;
+  margin-inline: 0;
+  border-width: 1.5px;
+  border-radius: var(--radius-panel);
+  background: color-mix(in oklab, var(--surface) 52%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-thumb-knob {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-steering
+  > span[aria-hidden="true"] {
+  display: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedals {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: 0.35rem;
+  max-width: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal {
+  min-width: 3.3rem;
+  min-height: 2.9rem;
+  padding: 0.2rem 0.32rem;
+  gap: 0.08rem;
+  border-width: 1.5px;
+  background: color-mix(in oklab, var(--surface) 68%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal strong {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal-gas {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  min-width: 4.4rem;
+  min-height: 6.15rem;
+  background: color-mix(in oklab, var(--accent) 82%, transparent);
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"])
+  .kart-controller[data-swapped="true"]
+  .kart-pedal-gas {
+  grid-column: 1;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal span {
+  font-size: 0.58rem;
+  line-height: 1.05;
+  max-width: 4.3rem;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-mouse-steering {
+  position: absolute;
+  z-index: 4;
+  left: 28%;
+  right: 28%;
+  top: 40%;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) > .kart-race-status {
+  position: absolute;
+  z-index: 7;
+  top: var(--race-top);
+  left: 50%;
+  translate: -50% 0;
+  display: block;
+  width: min(20rem, calc(100% - 22rem));
+  max-width: calc(100% - 2 * var(--race-edge));
+  text-align: center;
+  pointer-events: none;
+}
+.kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-race-status p {
+  margin: 0;
+  border-radius: var(--radius-control);
+  padding: 0.28rem 0.65rem;
+  background: color-mix(in oklab, var(--background) 78%, transparent);
+  color: var(--foreground);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.kart-phone[data-layout="grid"] .kart-race-status p {
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 48rem) {
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) {
+    --kart-pad-height: clamp(5rem, 15dvh, 6.75rem);
+    --kart-controls-clearance: calc(
+      var(--race-bottom) + max(var(--kart-pad-height), 5.65rem) + 0.75rem
+    );
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-steering {
+    width: min(8.75rem, 36%);
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-thumb-knob {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal {
+    min-width: 3rem;
+    min-height: 2.65rem;
+    padding: 0.16rem 0.28rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal strong {
+    font-size: 1rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal span {
+    font-size: 0.54rem;
+    max-width: 3.9rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal-gas {
+    min-width: 3.95rem;
+    min-height: 5.65rem;
+  }
+  .kart-phone[data-layout="race"] > .kart-race-status {
+    top: calc(var(--race-top) + 5.6rem);
+    width: min(20rem, calc(100% - 2 * var(--race-edge)));
+  }
+  .kart-phone[data-layout="grid"] > .kart-race-status {
+    top: calc(var(--race-top) + 4.3rem);
+    width: min(20rem, calc(100% - 2 * var(--race-edge)));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 32rem) {
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) {
+    --kart-pad-height: clamp(4.75rem, 23dvh, 6.25rem);
+    --kart-controls-clearance: calc(
+      var(--race-bottom) + max(var(--kart-pad-height), 5.4rem) + 0.65rem
+    );
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-steering {
+    width: min(10rem, 24%);
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-thumb-knob {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal {
+    min-width: 2.95rem;
+    min-height: 2.55rem;
+    padding: 0.15rem 0.28rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal strong {
+    font-size: 1rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal span {
+    font-size: 0.54rem;
+    max-width: 3.9rem;
+  }
+  .kart-phone:is([data-layout="race"], [data-layout="grid"]) .kart-pedal-gas {
+    min-width: 3.9rem;
+    min-height: 5.45rem;
+  }
+}
+
+/* Race notices stay off until a race or the grid is showing. */
+.kart-race-status {
+  display: none;
+}
+/* A short landscape finish keeps the result beside the summary. */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .kart-phone[data-layout="finish"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .kart-phone[data-layout="finish"] > .kart-finish-card {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: center;
+  }
+}
+
+/* 3-2-1-GO over the race: large, centred, never blocks a touch. */
+.kart-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.kart-countdown span {
+  grid-area: 1 / 1;
+  min-width: 1.4em;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05em 0.35em;
+  background: color-mix(in oklab, var(--background) 70%, transparent);
+  color: var(--highlight);
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 22vmin, 11rem);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+}
+@media (max-width: 48rem), (orientation: landscape) and (max-height: 32rem) {
+  .kart-countdown span {
+    font-size: clamp(3rem, 16vmin, 9rem);
+  }
+}
+.kart-countdown span[data-beat="GO"] {
+  color: var(--accent);
+}
+
+/* Item roulette: a badge beside the item button that spins briefly when a
+   new item arrives, then lands on it. */
+.kart-item-roulette {
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: var(--radius-control);
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-size: 1.5rem;
+  line-height: 1;
+  overflow: hidden;
+  transition: border-color 200ms var(--ease-party, ease-out);
+}
+.kart-item-roulette[data-spinning] {
+  border-color: var(--highlight);
+}
+
+/* One big tap turns race sound on; it leaves once sound is on or the race is
+   well under way, so it never sits over the driving view for long. */
+.kart-sound-prompt {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 9;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--highlight);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--surface-foreground);
+  font-weight: 800;
+  font-size: 1rem;
+  touch-action: manipulation;
+  transition: background-color 150ms var(--ease-party, ease-out);
+}
+.kart-sound-prompt:active {
+  background: var(--highlight);
+  color: var(--highlight-foreground);
+}

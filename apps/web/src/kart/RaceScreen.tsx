@@ -1,0 +1,527 @@
+import { AnimatePresence, motion } from "motion/react";
+import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
+import type {
+  KartInput,
+  KartControls,
+  KartFinish,
+  KartRaceView,
+} from "@kart-party/game";
+import type { RaceStage } from "./race-stage";
+import { KartDriverView } from "./KartDriverView";
+import { TouchController } from "./TouchController";
+import { useKartSocket } from "./useKartSocket";
+import { PowerUpControl } from "./PowerUpControl";
+import { Button } from "../ui/primitives";
+import { DriftGauge } from "./DriftGauge";
+import { useCallback, useState, useEffect, useRef, type ReactNode } from "react";
+import { isOpenKartRace, kartNeutral, resolveKartSettings } from "@kart-party/game";
+import { createSelfPrediction } from "./self-prediction";
+import { KartCountdown } from "./KartCountdown";
+import { useKartContactFeedback } from "./useKartContactFeedback";
+import { KartRecapPanel } from "./KartRecapPanel";
+import { KartRaceHud } from "./KartRaceHud";
+import { useRaceFeedback } from "./useRaceFeedback";
+import { ordinal, raceLaps } from "./race-callouts";
+import "./race-hud.css";
+
+const lapWords = (laps: number) => (laps === 1 ? "ONE LAP" : `${laps} LAPS`);
+const windowWords = (ms: number) =>
+  ms < 120_000 ? `${ms / 1000} SECONDS` : `${Math.round(ms / 60_000)} MINUTES`;
+
+/** The racer's screen: driving view, HUD, controls and finish card. */
+export function RaceScreen({
+  stage,
+  race,
+  connected = true,
+  onInput,
+  onFinish,
+  finishNotice,
+  onRecover,
+  onUseItem,
+  itemPending,
+  itemNotice,
+  recoveryPending = false,
+  recoveryNotice = "",
+  footer,
+}: {
+  stage: RaceStage;
+  race: KartRaceView | undefined;
+  connected?: boolean;
+  onInput?: (input: KartInput) => void;
+  onFinish?: (report: KartFinish) => void;
+  finishNotice?: string;
+  onRecover?: (raceId: string) => void;
+  onUseItem?: (raceId: string) => void;
+  itemPending?: boolean;
+  itemNotice?: string;
+  recoveryPending?: boolean;
+  recoveryNotice?: string;
+  /** Shown under the finish card, for example a results or rematch button. */
+  footer?: ReactNode;
+}) {
+  const reduced = usePrefersReducedMotion();
+  const paused = Boolean(stage.paused);
+  const timeLimitMs = race?.timeLimitMs ?? 45_000;
+  // A party race runs until everyone finishes, so it counts up, not down.
+  const openRace = isOpenKartRace({ timeLimitMs });
+  const self = race?.participants.find((d) => d.playerId === race.selfPlayerId);
+  const place = race?.leaderboard.find((d) => d.playerId === self?.playerId)?.place;
+  const complete = self && self.status !== "RACING";
+  const recap =
+    race?.presentation && race.presentation.version !== 2
+      ? race.presentation.recap
+      : undefined;
+  const heldItem =
+    race?.presentation?.version === 3
+      ? race.presentation.items.heldItem
+      : (race?.powers?.selfItem ?? null);
+  const hostEnded = recap?.reason === "host-ended";
+  const earlyEnded = Boolean(race?.ended && race.elapsedMs < timeLimitMs);
+  const stunned =
+    (race?.presentation?.version === 2 || race?.presentation?.version === 3) &&
+    (race.presentation.handling?.stunMs ?? 0) > 0;
+  const [viewReadiness, setViewReadiness] = useState({ raceId: "", usable: false });
+  const onReadiness = useCallback((raceId: string, usable: boolean) => {
+    setViewReadiness((previous) =>
+      previous.raceId === raceId && previous.usable === usable
+        ? previous
+        : { raceId, usable },
+    );
+  }, []);
+  const viewUsable =
+    !race ||
+    !self ||
+    complete ||
+    (viewReadiness.raceId === race.raceId && viewReadiness.usable);
+  const open = stage.phase === "racing" && !paused && connected;
+  const [prediction] = useState(createSelfPrediction);
+  const [finishRaceId, setFinishRaceId] = useState("");
+  const finishSent = useRef("");
+  const finishCallback = useRef(onFinish);
+  useEffect(() => {
+    finishCallback.current = onFinish;
+  }, [onFinish]);
+  const hasInput = Boolean(onInput);
+  const localFinish = Boolean(race && finishRaceId === race.raceId);
+  const driveOpen = open && viewUsable && !localFinish;
+  const sendInput = useCallback(
+    (input: KartInput) => {
+      prediction.published(input, performance.now());
+      onInput?.(input);
+    },
+    [prediction, onInput],
+  );
+  const send = useKartSocket(
+    race,
+    driveOpen && !recoveryPending,
+    onInput ? sendInput : undefined,
+  );
+  useEffect(() => {
+    if (race?.timingMode !== "device-v1" || !hasInput) return;
+    const now = performance.now();
+    prediction.running(stage.phase === "racing" && !paused, now);
+    prediction.server(race, now, 0);
+    let frame = 0;
+    const running = stage.phase === "racing" && !paused && !race.ended && !localFinish;
+    const tick = () => {
+      if (document.hidden || !running) return;
+      prediction.pose(performance.now());
+      const report = prediction.finish();
+      if (report && finishSent.current !== report.raceId) {
+        finishSent.current = report.raceId;
+        setFinishRaceId(report.raceId);
+        finishCallback.current?.(report);
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    if (running && !document.hidden) frame = requestAnimationFrame(tick);
+    const release = () => prediction.input(kartNeutral, performance.now());
+    const visibility = () => {
+      release();
+      cancelAnimationFrame(frame);
+      if (!document.hidden && running) frame = requestAnimationFrame(tick);
+    };
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("blur", release);
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, [race, stage.phase, paused, prediction, hasInput, localFinish]);
+  const laps = raceLaps(race);
+  const [soundAsked, setSoundAsked] = useState(false);
+  const feedback = useRaceFeedback(race, { open: driveOpen && !recoveryPending });
+  const contactFeedback = useKartContactFeedback({
+    raceId: race?.raceId ?? "",
+    elapsedMs: race?.elapsedMs ?? 0,
+    active: Boolean(
+      driveOpen &&
+      self &&
+      !complete &&
+      !recoveryPending &&
+      race?.effectsEnabled !== false,
+    ),
+    contact: Boolean(self?.contact),
+    eventMode: race?.presentation?.version === 2 || race?.presentation?.version === 3,
+    event:
+      race?.presentation?.version === 2 || race?.presentation?.version === 3
+        ? race.presentation.contacts.find((event) => event.playerId === self?.playerId)
+        : undefined,
+  });
+  // Draws this phone's kart from its own controls straight away; the room
+  // still decides where the kart really is and corrects the drawing.
+  const feel = resolveKartSettings(race?.settings);
+  if (feel.prediction !== "off") prediction.configure(feel.prediction);
+  const change = (value: KartControls) => {
+    prediction.input(
+      driveOpen && !recoveryPending ? value : kartNeutral,
+      performance.now(),
+    );
+    send(value);
+  };
+  const rehearsal = !onInput && !race;
+  // Short landscape phones use these to lay the race out full screen; see kart.css.
+  const layout = !race
+    ? undefined
+    : !self
+      ? "watch"
+      : complete
+        ? "finish"
+        : stage.phase === "racing"
+          ? "race"
+          : "grid";
+  // Shown over the full-screen driving view, where the ordinary status line is hidden.
+  const raceNotice =
+    localFinish && !complete
+      ? finishNotice || "Finish recorded — waiting for the room to save your time"
+      : !connected
+        ? "Connection lost — controls released"
+        : paused
+          ? "Paused — controls released"
+          : recoveryPending
+            ? "Returning to the track — controls released"
+            : !viewUsable
+              ? "Preparing your driving view — choose Map view to drive now"
+              : layout === "grid"
+                ? self?.gridPosition
+                  ? `Grid slot ${self.gridPosition}${race?.participantCount ? ` of ${race.participantCount}` : ""} · hold accelerate and steer right on GO for a rocket start`
+                  : "Hold accelerate and steer right on GO for a rocket start"
+                : "";
+  const instruction =
+    localFinish && !complete
+      ? finishNotice || "Finish recorded — saving your time…"
+      : !connected
+        ? "Connection lost — controls released"
+        : paused
+          ? "Paused — controls released"
+          : race?.ended || complete
+            ? "Race complete — results are on their way"
+            : stage.phase !== "racing" && !rehearsal
+              ? "Accelerate right on GO for a rocket start."
+              : race && !self
+                ? "You’re watching this race. You’ll join the next one."
+                : "Accelerate and follow the circuit.";
+  return (
+    <section
+      className="kart-phone"
+      aria-label="Race"
+      // A race or the grid fills the screen; the controls sit on that view.
+      data-layout={layout}
+    >
+      {contactFeedback.overlay}
+      {self && !complete ? (
+        <KartCountdown
+          stage={stage}
+          race={race}
+          haptics={Boolean(onInput)}
+          enabled={connected && viewUsable}
+        />
+      ) : null}
+      {layout === "grid" || layout === "race" ? (
+        <div className="kart-race-status" role="status" aria-live="polite">
+          <AnimatePresence initial={false} mode="wait">
+            {raceNotice ? (
+              <motion.p
+                key={raceNotice}
+                initial={{ opacity: 0, y: reduced ? 0 : -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduced ? 0.12 : 0.2, ease: "easeOut" }}
+              >
+                {raceNotice}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      ) : null}
+      <AnimatePresence initial={false}>
+        {(layout === "grid" || layout === "race") &&
+        self &&
+        !complete &&
+        !feedback.soundOn &&
+        !soundAsked &&
+        !race?.ended &&
+        (race?.elapsedMs ?? 0) < 15_000 ? (
+          <motion.button
+            key="sound-prompt"
+            type="button"
+            className="kart-sound-prompt"
+            onClick={() => {
+              setSoundAsked(true);
+              if (!feedback.soundOn) feedback.toggleSound();
+            }}
+            initial={{ opacity: 0, scale: reduced ? 1 : 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduced ? 0.12 : 0.2, ease: "easeOut" }}
+          >
+            🔊 Tap for race sound
+          </motion.button>
+        ) : null}
+      </AnimatePresence>
+      <header className="kart-phone-heading">
+        <p className="kart-eyebrow">
+          {lapWords(laps)} · {openRace ? "EVERYONE FINISHES" : windowWords(timeLimitMs)}
+        </p>
+        <h1 className="phone-prompt">
+          {complete
+            ? self.status === "FINISHED"
+              ? laps > 1
+                ? "Race complete"
+                : "Lap complete"
+              : hostEnded || earlyEnded
+                ? "Race ended"
+                : "Time’s up"
+            : self
+              ? `Kart ${self.number}`
+              : "Start your engines"}
+        </h1>
+      </header>
+      {self?.gridPosition && stage.phase !== "racing" ? (
+        <p>
+          Starting grid: {self.gridPosition} of {race?.participantCount}
+        </p>
+      ) : null}
+      <p role="status">
+        {rehearsal ? "Controller rehearsal — no race is running." : instruction}
+      </p>
+      {self ? (
+        <div className="kart-hud-stack">
+          {/* Just before the view: upright phones overlay its top-left corner. */}
+          {race && !complete && stage.phase === "racing" ? (
+            <KartRaceHud
+              race={race}
+              self={self}
+              place={place}
+              banner={feedback.banner}
+              reduced={reduced}
+            />
+          ) : null}
+          <div className="kart-phone-hud">
+            <div>
+              <strong>
+                {self.status === "FINISHED"
+                  ? self.lapTimeMs === null
+                    ? "Time unavailable"
+                    : `${(self.lapTimeMs / 1000).toFixed(2)}s`
+                  : `Sector ${Math.min(8, self.checkpoint + 1)} / 8`}
+              </strong>
+              <p>
+                {complete
+                  ? self.status === "FINISHED"
+                    ? `Position ${place ?? "—"}`
+                    : `${Math.round(self.progress * 100)}% of the ${laps > 1 ? "race" : "lap"}`
+                  : openRace
+                    ? `Race time ${((race?.elapsedMs ?? 0) / 1000).toFixed(1)}s`
+                    : `${Math.max(0, (timeLimitMs - (race?.elapsedMs ?? 0)) / 1000).toFixed(1)}s left`}
+              </p>
+              <p>
+                {complete
+                  ? "Your result is saved."
+                  : `Position ${place ?? "—"}${race?.participantCount === undefined ? "" : ` of ${race.participantCount}`}`}
+              </p>
+            </div>
+          </div>
+          {!complete ? (
+            <div className="kart-telemetry" aria-label="Driving feedback">
+              <p className="kart-driving-state" role="status">
+                {!driveOpen
+                  ? "Controls released"
+                  : stunned
+                    ? "Barrier impact — controls resume in a moment"
+                    : self.wrongWay
+                      ? "Wrong way — turn around"
+                      : self.contact
+                        ? "Barrier contact — steer away"
+                        : self.boostRemainingMs > 0
+                          ? "BOOST! Keep accelerating"
+                          : (self.driftLevel ?? 0) >= 1
+                            ? "Drift ready — release R!"
+                            : self.drifting
+                              ? "Charging drift…"
+                              : "Accelerate · steer gently to the right"}
+              </p>
+              <DriftGauge
+                chargeMs={self.driftChargeMs ?? self.driftCharge * 700}
+                boostLevel={self.boostRemainingMs > 0 ? self.boostLevel || 1 : 0}
+              />
+              {(self.height ?? 0) > 0 ? (
+                <p>Gliding · {self.height!.toFixed(1)} m · A: glide · B: descend</p>
+              ) : null}
+              <div className="kart-telemetry-labels">
+                <span>R: hold to charge, release to boost</span>
+                <span>{Math.round(Math.abs(self.speed) * 3.6)} km/h</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {race && self && !complete ? (
+        <KartDriverView
+          key={`view-${race.raceId}`}
+          race={race}
+          reducedMotion={reduced}
+          paused={!driveOpen}
+          onReadiness={onReadiness}
+          prediction={
+            onInput &&
+            !recoveryPending &&
+            (race?.timingMode === "device-v1" || feel.prediction !== "off")
+              ? prediction
+              : undefined
+          }
+        />
+      ) : null}
+      {!complete ? (
+        <TouchController
+          key={race?.raceId ?? "kart-rehearsal"}
+          disabled={
+            !driveOpen ||
+            recoveryPending ||
+            (!rehearsal && (!self || self.status !== "RACING" || race?.ended))
+          }
+          onChange={change}
+          steeringDefault={feel.steering}
+          onUseItem={race && onUseItem ? () => onUseItem(race.raceId) : undefined}
+          onRecover={race && onRecover ? () => onRecover(race.raceId) : undefined}
+          itemDisabled={Boolean(itemPending) || !heldItem}
+          recoveryDisabled={recoveryPending}
+          extraSettings={
+            <>
+              {contactFeedback.settings}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={feedback.soundOn}
+                  onChange={feedback.toggleSound}
+                />{" "}
+                Race sound and buzzes (engine, laps, places, finish)
+              </label>
+            </>
+          }
+        />
+      ) : (
+        <motion.div
+          className="kart-finish-card"
+          initial={{ opacity: 0, y: reduced ? 0 : 18, scale: reduced ? 1 : 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={
+            reduced
+              ? { duration: 0.15, ease: "easeOut" }
+              : { type: "spring", stiffness: 320, damping: 24 }
+          }
+        >
+          {self.status === "FINISHED" ? (
+            <>
+              <div className="kart-finish-flag" aria-hidden="true" />
+              <span className="kart-finish-place">
+                {place ? `You finished ${ordinal(place)}!` : "You finished!"}
+              </span>
+              {self.lapTimeMs !== null ? (
+                <p>Race time {(self.lapTimeMs / 1000).toFixed(2)}s</p>
+              ) : null}
+              {self.lapsMs && self.lapsMs.length > 1 ? (
+                <ol className="kart-finish-laps" aria-label="Your lap times">
+                  {self.lapsMs.map((end, i) => (
+                    <li key={i}>
+                      Lap {i + 1}:{" "}
+                      {((end - (self.lapsMs![i - 1] ?? 0)) / 1000).toFixed(2)}s
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </>
+          ) : null}
+          <strong>{self.status === "FINISHED" ? "Chequered flag" : "DNF"}</strong>
+          <p>
+            {self.status === "FINISHED"
+              ? "You made it. Take your hands off the wheel."
+              : hostEnded
+                ? "This race was ended early. Thanks for driving."
+                : earlyEnded
+                  ? "This race ended before you finished. Thanks for driving."
+                  : "The race time is up. Thanks for driving."}
+          </p>
+          {footer}
+        </motion.div>
+      )}
+      {race?.ended && self ? (
+        <KartRecapPanel
+          timingMode={race.timingMode}
+          recap={recap}
+          selfPlayerId={self.playerId}
+          names={{ [self.playerId]: self.name }}
+        />
+      ) : null}
+      {!complete ? (
+        <div className="kart-action-rail">
+          {race?.powers && self && onUseItem ? (
+            <PowerUpControl
+              item={heldItem}
+              pending={itemPending}
+              disabled={!open || recoveryPending}
+              notice={itemNotice}
+              effect={
+                race.powers.effects.find((e) => e.playerId === self.playerId)?.shieldMs
+                  ? "Shield active — blocks one item hit"
+                  : race.powers.effects.find((e) => e.playerId === self.playerId)
+                        ?.slowedMs
+                    ? "Item hit — briefly slowed"
+                    : race.powers.effects.find((e) => e.playerId === self.playerId)
+                          ?.turboMs
+                      ? "Turbo active — keep accelerating"
+                      : ""
+              }
+              onUse={() => onUseItem(race.raceId)}
+            />
+          ) : null}
+          <div className="kart-recovery">
+            {race && self && onRecover ? (
+              <Button
+                variant="secondary"
+                disabled={!open || recoveryPending || race.ended}
+                onClick={() => onRecover(race.raceId)}
+              >
+                {recoveryPending ? "Returning…" : "Back to track"}
+              </Button>
+            ) : null}
+            <p role="status">
+              {recoveryPending
+                ? "Returning to the track — controls released"
+                : recoveryNotice}
+            </p>
+          </div>
+        </div>
+      ) : null}
+      {!complete ? (
+        <p className="kart-help">
+          Slide the steering zone to turn. Accelerate, Brake and Drift are separate
+          buttons. A slider is there if you prefer it.
+          <br />
+          Keyboard: arrows or WASD · Space: drift · E: item · R: back to track.
+        </p>
+      ) : null}
+    </section>
+  );
+}

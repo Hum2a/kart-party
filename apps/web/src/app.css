@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Avenir Next", "Segoe UI Black", "Arial Black", system-ui, sans-serif;
+  --font-sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ease-party: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-line: var(--line);
+}
+
+/* Kart Party palette: night track, hot orange and teal. */
+:root {
+  color-scheme: dark;
+  --background: #0f1226;
+  --foreground: #f4f1ff;
+  --muted: #a3a8cf;
+  --accent: #ff5a36;
+  --accent-foreground: #1c0903;
+  --highlight: #3ee0d0;
+  --highlight-foreground: #03211e;
+  --surface: #1a1f3d;
+  --surface-foreground: #f4f1ff;
+  --line: #343b6e;
+  --mark: #ff5a36;
+  --mark-quiet: #2a1712;
+  --radius-control: 14px;
+  --radius-panel: 22px;
+  /* 3D scene colours. The renderer falls back to the page palette for any not set. */
+  --kart-muted: #3f8f5c;
+  --kart-surface: #30344d;
+  --kart-background: #141a33;
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(
+      60rem 30rem at 85% -10%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50rem 30rem at -10% 110%,
+      color-mix(in srgb, var(--highlight) 16%, transparent),
+      transparent 70%
+    ),
+    var(--background);
+  background-attachment: fixed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
+}
+
+.motion-press {
+  transition:
+    transform 140ms var(--ease-party),
+    background-color 160ms var(--ease-party),
+    border-color 160ms var(--ease-party),
+    opacity 160ms var(--ease-party);
+}
+.motion-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.skin-control {
+  border-radius: var(--radius-control);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.chequer {
+  background-image: conic-gradient(
+    var(--foreground) 25%,
+    transparent 0 50%,
+    var(--foreground) 0 75%,
+    transparent 0
+  );
+  background-size: 12px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-press,
+  .motion-press:active {
+    transition-duration: 1ms;
+    transform: none;
+  }
+}
+
+/* Practice overlays sit above the full-screen race view. */
+/* Left edge, mid-height: clear of the HUD, the view menu and the driving controls. */
+.practice-menu {
+  position: fixed;
+  top: 38%;
+  left: max(0.5rem, env(safe-area-inset-left));
+  z-index: 40;
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+.practice-paused {
+  width: min(20rem, calc(100vw - 2rem));
+}
+.practice-results {
+  position: fixed;
+  z-index: 45;
+  inset: auto 1rem max(1rem, env(safe-area-inset-bottom)) 1rem;
+  margin-inline: auto;
+  max-width: 32rem;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  background: var(--surface);
+}

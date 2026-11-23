@@ -1,0 +1,983 @@
+import * as THREE from "three";
+import {
+  ringBounds,
+  ringCourse,
+  courseFeaturePose,
+  polylineTrack,
+} from "@kart-party/game";
+import type { KartRaceView } from "@kart-party/game";
+import { driftEffectDescription, driftStrength } from "./drift-effects";
+import { blendKartPose, smoothKartPose, type KartPose } from "./presentation";
+import { createDriverRig } from "./driver-rig";
+import { vehiclePose } from "./vehicle-pose";
+import { createKartVfxPool, type VfxActor } from "./vfx-budget";
+import { createNativeKartVfx } from "./vfx-renderer";
+import type { KartVfxPreset, KartVfxKind } from "@kart-party/game";
+import type { GraphicsTier } from "./graphics";
+
+type Palette = Record<
+  "ground" | "road" | "accent" | "highlight" | "ink" | "muted",
+  THREE.Color
+>;
+
+/** Original low-poly venue. Shared/instanced meshes keep a full room inexpensive. */
+export function createCircuit(
+  palette: Palette,
+  mobile: boolean,
+  focusPlayerId?: string,
+  trackId = "party-ring-v1",
+  onAssetError?: () => void,
+  onAssetState?: (state: "loading" | "ready" | "failed") => void,
+  nearbyCapacity = 0,
+  onVehicleState?: (state: "loading" | "ready" | "failed") => void,
+  onVisualChange?: () => void,
+) {
+  const poly = polylineTrack(trackId);
+  const course = poly?.course ?? ringCourse;
+  const venue = new THREE.Group();
+  venue.visible = !poly;
+  const parkVenue = new THREE.Group();
+  parkVenue.name = "kart-polyline-venue";
+  let target: THREE.Object3D = venue;
+  const neighbourCapacity = Math.max(0, Math.min(8, Math.floor(nearbyCapacity) || 0));
+  const capacity = focusPlayerId ? 1 + neighbourCapacity : 80;
+  const { ground, road, accent, highlight, ink, muted } = palette;
+  const scene = new THREE.Scene();
+  let vfxPool: ReturnType<typeof createKartVfxPool> | undefined;
+  let vfx: ReturnType<typeof createNativeKartVfx> | undefined;
+  let vfxPreset: KartVfxPreset | undefined;
+  let vfxActive = false;
+  scene.background = ground;
+  scene.add(venue);
+  if (poly) scene.add(parkVenue);
+  scene.add(new THREE.HemisphereLight(ink, ground, 2));
+  const sun = new THREE.DirectionalLight(ink, 2);
+  sun.position.set(25, 70, 10);
+  scene.add(sun);
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  const textures = new Set<THREE.Texture>();
+  const instances = new Set<THREE.InstancedMesh>();
+  const geo = <T extends THREE.BufferGeometry>(value: T) => {
+    geometries.add(value);
+    return value;
+  };
+  const mat = (color: THREE.Color) => {
+    const value = new THREE.MeshLambertMaterial({ color, flatShading: true });
+    materials.add(value);
+    return value;
+  };
+  const surface = mat(road),
+    bright = mat(accent),
+    second = mat(highlight),
+    text = mat(ink),
+    dark = mat(ground),
+    quiet = mat(muted);
+  // Every kart is drawn from original low-poly instanced parts; there is no model download.
+  const detailedVisible = false;
+  onVehicleState?.("ready");
+  onAssetState?.("ready");
+  void onAssetError;
+  const transform = new THREE.Object3D();
+  const mesh = (
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    x: number,
+    y: number,
+    z: number,
+  ) => {
+    const value = new THREE.Mesh(geometry, material);
+    value.position.set(x, y, z);
+    target.add(value);
+    return value;
+  };
+  const batch = (
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    count: number,
+  ) => {
+    const value = new THREE.InstancedMesh(geometry, material, count);
+    value.frustumCulled = false;
+    target.add(value);
+    instances.add(value);
+    return value;
+  };
+  const place = (
+    value: THREE.InstancedMesh,
+    i: number,
+    x: number,
+    y: number,
+    z: number,
+    yaw = 0,
+    sx = 1,
+    sy = 1,
+    sz = 1,
+  ) => {
+    transform.position.set(x, y, z);
+    transform.rotation.set(0, yaw, 0, "XYZ");
+    transform.scale.set(sx, sy, sz);
+    transform.updateMatrix();
+    value.setMatrixAt(i, transform.matrix);
+  };
+  const segments = mobile ? 64 : 96;
+  // Raised circuit plinth and inner lawn are distinct silhouettes, without shadow maps.
+  mesh(geo(new THREE.CylinderGeometry(53, 54, 2, segments)), dark, 0, -1.4, 0);
+  const roadMesh = mesh(
+    geo(new THREE.RingGeometry(ringBounds.inner, ringBounds.outer, segments)),
+    surface,
+    0,
+    0.02,
+    0,
+  );
+  roadMesh.rotation.x = -Math.PI / 2;
+  mesh(geo(new THREE.CylinderGeometry(32.5, 33, 0.7, segments)), quiet, 0, -0.3, 0);
+  const curbGeo = geo(new THREE.BoxGeometry(3.1, 0.65, 0.9));
+  const curbsA = batch(curbGeo, bright, 64),
+    curbsB = batch(curbGeo, text, 64);
+  for (let i = 0; i < 128; i++) {
+    const a = (Math.floor(i / 2) * Math.PI) / 32,
+      r = i % 2 ? 50.5 : 33.5;
+    place(
+      Math.floor(i / 2) % 2 ? curbsB : curbsA,
+      Math.floor(i / 4) * 2 + (i % 2),
+      Math.cos(a) * r,
+      0.15,
+      Math.sin(a) * r,
+      -a + Math.PI / 2,
+    );
+  }
+  const dash = batch(geo(new THREE.BoxGeometry(1.6, 0.05, 0.12)), text, 48);
+  for (let i = 0; i < 48; i++) {
+    const a = (i * Math.PI) / 24;
+    place(dash, i, Math.cos(a) * 42, 0.08, Math.sin(a) * 42, -a + Math.PI / 2);
+  }
+  const checkGeo = geo(new THREE.BoxGeometry(2, 0.08, 1));
+  const finishA = batch(checkGeo, text, 8),
+    finishB = batch(checkGeo, dark, 8);
+  let finishIndexA = 0,
+    finishIndexB = 0;
+  for (let x = 0; x < 8; x++)
+    for (let z = 0; z < 2; z++) {
+      const white = (x + z) % 2;
+      place(
+        white ? finishA : finishB,
+        white ? finishIndexA++ : finishIndexB++,
+        35 + x * 2,
+        0.11,
+        z - 0.5,
+      );
+    }
+  const poleGeo = geo(new THREE.CylinderGeometry(0.3, 0.3, 6, 6));
+  for (const x of [32.5, 51.5]) mesh(poleGeo, second, x, 3, 0);
+  mesh(geo(new THREE.BoxGeometry(19.5, 1.5, 0.8)), bright, 42, 6, 0);
+  const arrowShape = new THREE.Shape()
+    .moveTo(0, 2)
+    .lineTo(-1.4, -1)
+    .lineTo(1.4, -1)
+    .closePath();
+  const arrowGeo = geo(new THREE.ShapeGeometry(arrowShape));
+  for (let i = 1; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    const arrow = mesh(arrowGeo, second, Math.cos(a) * 45, 0.12, Math.sin(a) * 45);
+    arrow.rotation.x = -Math.PI / 2;
+    arrow.rotation.z = Math.PI - a;
+  }
+  // Tiered stands and low-poly trees stay outside the driving surface.
+  const standGeo = geo(new THREE.BoxGeometry(16, 1.2, 3));
+  for (const x of [-22, 0, 22])
+    for (let tier = 0; tier < 3; tier++)
+      mesh(standGeo, tier % 2 ? second : bright, x, 0.5 + tier * 1.1, -56 - tier * 2.5);
+  const trunks = batch(geo(new THREE.CylinderGeometry(0.35, 0.5, 2.5, 5)), dark, 12),
+    crowns = batch(geo(new THREE.ConeGeometry(2.2, 5, 5)), bright, 12);
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6,
+      r = 24;
+    place(trunks, i, Math.cos(a) * r, 1, Math.sin(a) * r);
+    place(crowns, i, Math.cos(a) * r, 4, Math.sin(a) * r);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.fillStyle = `#${ground.getHexString()}`;
+    ctx.font = "900 150px sans-serif";
+    ctx.textAlign = "center";
+    ctx.font = "900 96px sans-serif";
+    ctx.fillText("KART", 256, 120);
+    ctx.fillText("PARTY", 256, 220);
+    const texture = new THREE.CanvasTexture(canvas);
+    textures.add(texture);
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    });
+    materials.add(material);
+    const mark = mesh(geo(new THREE.PlaneGeometry(28, 14)), material, 0, 0.12, 0);
+    mark.rotation.x = -Math.PI / 2;
+    if (poly) {
+      // A ground decal beside the opening straight, clear of every road strip.
+      const parkMark = mesh(
+        geo(new THREE.PlaneGeometry(28, 14)),
+        material,
+        -(poly.halfWidth + 16),
+        0.12,
+        -30,
+      );
+      parkMark.rotation.x = -Math.PI / 2;
+      parkMark.rotation.z = Math.PI / 2;
+      parkVenue.add(parkMark);
+    }
+  }
+  if (poly) {
+    target = parkVenue;
+    const parkRibbon = poly.ribbon,
+      parkWalls = poly.walls;
+    const xs = parkRibbon.flatMap((edge) => [edge.left[0], edge.right[0]]),
+      zs = parkRibbon.flatMap((edge) => [edge.left[1], edge.right[1]]);
+    const minX = Math.min(...xs) - 50,
+      maxX = Math.max(...xs) + 50,
+      minZ = Math.min(...zs) - 50,
+      maxZ = Math.max(...zs) + 50;
+    const lawn = mesh(
+      geo(new THREE.PlaneGeometry(maxX - minX, maxZ - minZ)),
+      quiet,
+      (minX + maxX) / 2,
+      -0.04,
+      (minZ + maxZ) / 2,
+    );
+    lawn.rotation.x = -Math.PI / 2;
+    const positions: number[] = [];
+    for (let i = 0; i < parkRibbon.length; i++) {
+      const a = parkRibbon[i]!,
+        b = parkRibbon[(i + 1) % parkRibbon.length]!;
+      for (const point of [a.left, b.left, a.right, a.right, b.left, b.right])
+        positions.push(point[0], 0.02, point[1]);
+    }
+    const ribbon = geo(new THREE.BufferGeometry());
+    ribbon.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    ribbon.computeVertexNormals();
+    mesh(ribbon, surface, 0, 0, 0).name = "kart-park-road";
+    const edgeGeometry = geo(new THREE.BoxGeometry(1, 0.6, 0.65));
+    const a = batch(edgeGeometry, bright, Math.ceil(parkWalls.length / 2)),
+      b = batch(edgeGeometry, text, Math.floor(parkWalls.length / 2));
+    a.name = "kart-park-walls-accent";
+    b.name = "kart-park-walls-ink";
+    parkWalls.forEach((wall, i) => {
+      const heading = Math.atan2(wall.bz - wall.az, wall.bx - wall.ax);
+      place(
+        i % 2 ? b : a,
+        Math.floor(i / 2),
+        (wall.ax + wall.bx) / 2,
+        0.3,
+        (wall.az + wall.bz) / 2,
+        -heading,
+        Math.hypot(wall.bx - wall.ax, wall.bz - wall.az),
+      );
+    });
+    const spots = trackside(poly, 14);
+    const trees = batch(crowns.geometry, bright, spots.length),
+      stems = batch(trunks.geometry, dark, spots.length);
+    spots.forEach(([x, z], i) => {
+      place(trees, i, x, 4, z);
+      place(stems, i, x, 1, z);
+    });
+    const columns = Math.round(poly.halfWidth),
+      finishLight = batch(checkGeo, text, columns),
+      finishDark = batch(checkGeo, dark, columns);
+    for (let i = 0; i < columns * 2; i++) {
+      const column = i % columns,
+        row = Math.floor(i / columns),
+        light = (column + row) % 2;
+      place(
+        light ? finishLight : finishDark,
+        Math.floor(i / 2),
+        -poly.halfWidth + 1 + column * 2,
+        0.12,
+        row - 0.5,
+      );
+    }
+    for (const x of [-(poly.halfWidth + 1), poly.halfWidth + 1])
+      mesh(poleGeo, second, x, 3, 0);
+    mesh(geo(new THREE.BoxGeometry(poly.halfWidth * 2 + 2, 1.5, 0.8)), bright, 0, 6, 0);
+  }
+  // Six batches instead of one group of draw calls per racer (including 320 wheels).
+  // Instance colours are the palette; the base material is a neutral multiplier.
+  target = scene;
+  const bodyMat = mat(ink);
+  bodyMat.color.setRGB(1, 1, 1);
+  const bodies = batch(geo(new THREE.BoxGeometry(2.8, 0.65, 1.5)), bodyMat, capacity);
+  const noses = batch(geo(new THREE.BoxGeometry(0.8, 0.35, 1.7)), second, capacity);
+  const seats = batch(geo(new THREE.BoxGeometry(0.65, 0.9, 0.65)), text, capacity);
+  const helmets = batch(geo(new THREE.SphereGeometry(0.48, 8, 6)), second, capacity);
+  const wheels = batch(
+    geo(new THREE.BoxGeometry(0.65, 0.65, 0.35)),
+    dark,
+    capacity * 4,
+  );
+  for (const value of [bodies, noses, seats, helmets, wheels]) {
+    value.count = 0;
+    value.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  }
+  // Each kart's driver. The old helmet sphere stays unused: its geometry is shared below.
+  const rig = createDriverRig({
+    onChange: onVisualChange,
+    scene,
+    capacity,
+    geo,
+    batch,
+    material: bodyMat,
+    textures,
+    palette: { ink, ground, accent, highlight },
+  });
+  const sparkMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  materials.add(sparkMaterial);
+  const sparks = batch(
+    geo(new THREE.OctahedronGeometry(0.16)),
+    sparkMaterial,
+    capacity * 8,
+  );
+  sparks.name = "kart-drift-sparks";
+  sparks.count = 0;
+  sparks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const courseProps = batch(seats.geometry, bright, course.length);
+  courseProps.name = "kart-course-features";
+  const gliders = batch(seats.geometry, second, capacity);
+  gliders.name = "kart-gliders";
+  const itemBoxes = batch(seats.geometry, bright, 24),
+    oilSlicks = batch(helmets.geometry, dark, 64);
+  // Gameplay hazards remain visible at Low quality and when decoration is off.
+  const projectileBatches = {
+    tennis: batch(helmets.geometry, bright, 64),
+    bomb: batch(helmets.geometry, dark, 64),
+    homing: batch(sparks.geometry, second, 64),
+  };
+  const bombFuses = batch(helmets.geometry, bright, 64);
+  bombFuses.name = "kart-bomb-fuses";
+  bombFuses.count = 0;
+  bombFuses.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  for (const [kind, mesh] of Object.entries(projectileBatches)) {
+    mesh.name = `kart-projectile-${kind}`;
+    mesh.count = 0;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  }
+  const projectilePoses = new Map<string, { x: number; z: number; height: number }>();
+  const shieldMaterial = new THREE.MeshBasicMaterial({
+    color: highlight,
+    transparent: true,
+    opacity: 0.35,
+    wireframe: true,
+    depthWrite: false,
+  });
+  materials.add(shieldMaterial);
+  const shields = batch(helmets.geometry, shieldMaterial, capacity);
+  itemBoxes.name = "kart-item-boxes";
+  oilSlicks.name = "kart-oil-slicks";
+  shields.name = "kart-shields";
+  for (const m of [itemBoxes, oilSlicks, shields]) {
+    m.count = 0;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  }
+  const emission = new Map<string, number>();
+  let effectTime = 0,
+    effectRaceId: string | undefined;
+  const poses = new Map<string, KartPose>();
+  let predictedPlayerId: string | undefined;
+  let glideEnabled = true;
+  /** Last two server poses for each other racer, on the effect clock. */
+  const serverSpan = new Map<string, { from: ServerSample; to: ServerSample }>();
+  type ServerSample = KartPose & { at: number };
+  const travel = new Map<string, number>();
+  const featurePoses = new Map<string, { x: number; z: number }>();
+  const labels = new Map<string, THREE.Sprite>();
+  const present = new Set<string>();
+  function disposeLabel(id: string, sprite: THREE.Sprite) {
+    scene.remove(sprite);
+    const mat = sprite.material;
+    if (mat.map) {
+      mat.map.dispose();
+      textures.delete(mat.map);
+    }
+    mat.dispose();
+    materials.delete(mat);
+    labels.delete(id);
+  }
+  function label(driver: KartRaceView["participants"][number], named: boolean) {
+    const key = `${driver.playerId}:${named ? "name" : "number"}`;
+    const known = labels.get(key);
+    if (known) return known;
+    const canvas = document.createElement("canvas");
+    // A chase-view tag carries the nickname; the map keeps the round number.
+    const name = named ? kartTagName(driver.name) : "";
+    canvas.width = named ? 256 : 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+    const edge = `#${driver.number % 2 ? accent.getHexString() : highlight.getHexString()}`;
+    ctx.fillStyle = `#${ground.getHexString()}`;
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    if (named) ctx.roundRect(4, 6, 248, 52, 26);
+    else ctx.arc(32, 32, 29, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = `#${ink.getHexString()}`;
+    ctx.textBaseline = "middle";
+    if (named) {
+      ctx.font = "bold 30px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`${driver.number} ${name}`, 22, 34, 216);
+    } else {
+      ctx.font = "bold 34px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(String(driver.number), 32, 34);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    textures.add(texture);
+    const material = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+    materials.add(material);
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(named ? 9 : 4.5, named ? 2.25 : 4.5, 1);
+    scene.add(sprite);
+    labels.set(key, sprite);
+    return sprite;
+  }
+  function serverSample(
+    driver: KartPose & { playerId: string },
+    at: number,
+  ): ServerSample {
+    return {
+      x: driver.x,
+      z: driver.z,
+      heading: driver.heading,
+      ...(driver.height !== undefined ? { height: driver.height } : {}),
+      at,
+    };
+  }
+  function sameServerPose(sample: ServerSample, driver: KartPose) {
+    return (
+      sample.x === driver.x &&
+      sample.z === driver.z &&
+      sample.heading === driver.heading &&
+      (sample.height ?? 0) === (driver.height ?? 0)
+    );
+  }
+  /**
+   * Other racers play the newest server gap: from the previous pose to the
+   * one that just arrived, over the time between those frames. A predicted
+   * kart does not come through here.
+   */
+  function glide(driver: KartPose & { playerId: string }, reduced: boolean) {
+    const known = serverSpan.get(driver.playerId);
+    if (!known || !sameServerPose(known.to, driver)) {
+      const to = serverSample(driver, effectTime);
+      serverSpan.set(driver.playerId, { from: known?.to ?? to, to });
+    }
+    const span = serverSpan.get(driver.playerId)!;
+    const gap = span.to.at - span.from.at;
+    if (reduced || !glideEnabled || gap <= 0) return driver;
+    return blendKartPose(span.from, span.to, (effectTime - span.to.at) / gap);
+  }
+  function holdServerPose(driver: KartPose & { playerId: string }) {
+    const to = serverSample(driver, effectTime);
+    serverSpan.set(driver.playerId, { from: to, to });
+  }
+  function update(
+    race: KartRaceView,
+    dt: number,
+    reduced: boolean,
+    sparkStride = 1,
+    sparkLimit = capacity * 8,
+    nearbyLimit = 0,
+    detailed = true,
+    effects?: { preset: KartVfxPreset; tier: GraphicsTier; paused: boolean },
+  ) {
+    vfxActive = Boolean(effects);
+    if (effects && !vfxPool) vfxPool = createKartVfxPool();
+    if (effects && vfxPreset !== effects.preset) {
+      vfxPool!.configure(effects.preset);
+      vfxPreset = effects.preset;
+    }
+    if (effects && !vfx)
+      vfx = createNativeKartVfx(THREE, scene, { accent, highlight, muted, ink });
+    void detailed;
+    const sparkBudget = Number.isFinite(sparkLimit)
+      ? Math.max(0, Math.min(capacity * 8, Math.floor(sparkLimit)))
+      : 0;
+    if (effectRaceId !== race.raceId) {
+      emission.clear();
+      poses.clear();
+      serverSpan.clear();
+      travel.clear();
+      featurePoses.clear();
+      projectilePoses.clear();
+      effectTime = 0;
+      effectRaceId = race.raceId;
+    }
+    let sparkCount = 0,
+      shieldCount = 0;
+    effectTime += Math.max(0, Math.min(0.1, dt));
+    const self = race.participants.find((driver) => driver.playerId === focusPlayerId);
+    const neighbours = (race.nearby ?? [])
+      .filter(
+        (driver, i, all) =>
+          driver.playerId !== focusPlayerId &&
+          all.findIndex((other) => other.playerId === driver.playerId) === i,
+      )
+      .slice(0, Math.max(0, Math.min(neighbourCapacity, Math.floor(nearbyLimit) || 0)));
+    const drivers = (
+      focusPlayerId ? (self ? [self, ...neighbours] : []) : race.participants
+    ).slice(0, capacity);
+    present.clear();
+    for (const driver of drivers) {
+      present.add(driver.playerId);
+    }
+    for (const id of poses.keys())
+      if (!present.has(id)) {
+        poses.delete(id);
+        serverSpan.delete(id);
+        travel.delete(id);
+        emission.delete(id);
+      }
+    for (const [id, sprite] of labels) {
+      const playerId = id.slice(0, id.lastIndexOf(":"));
+      if (!present.has(playerId)) disposeLabel(id, sprite);
+    }
+    rig.begin(dt);
+    const tagged = new Set<THREE.Sprite>();
+    // The followed kart comes first in chase view; its pose sizes nearby tags.
+    let focusX: number | undefined, focusZ: number | undefined;
+    for (let i = 0; i < drivers.length; i++) {
+      const driver = drivers[i]!,
+        previous = poses.get(driver.playerId),
+        // A predicted kart is already smooth; easing it again would add lag.
+        serverPose = {
+          x: driver.x,
+          z: driver.z,
+          heading: driver.heading,
+          ...(driver.height !== undefined ? { height: driver.height } : {}),
+        },
+        followed = driver.playerId === predictedPlayerId,
+        jumped =
+          previous !== undefined &&
+          Math.hypot(serverPose.x - previous.x, serverPose.z - previous.z) > 8,
+        pose = followed
+          ? serverPose
+          : reduced || !glideEnabled || jumped
+            ? smoothKartPose(previous ?? driver, serverPose, dt, reduced)
+            : glide(driver, reduced);
+      if (!followed && (reduced || !glideEnabled) && !jumped) glide(driver, true);
+      if (!followed && jumped) holdServerPose(driver);
+      poses.set(driver.playerId, pose);
+      const height = pose.height ?? 0;
+      const { x, z, heading } = pose,
+        c = Math.cos(heading),
+        s = Math.sin(heading);
+      if (driver.playerId === focusPlayerId) {
+        focusX = x;
+        focusZ = z;
+      }
+      const moved = previous ? Math.hypot(x - previous.x, z - previous.z) : 0;
+      const distance =
+        moved < 8 && previous ? (x - previous.x) * c + (z - previous.z) * s : 0;
+      const along = (moved < 8 ? (travel.get(driver.playerId) ?? 0) : 0) + distance;
+      travel.set(driver.playerId, along);
+      const yaw =
+        previous && moved < 8 && dt > 0
+          ? Math.atan2(
+              Math.sin(heading - previous.heading),
+              Math.cos(heading - previous.heading),
+            ) / dt
+          : 0;
+      const chassis = vehiclePose(
+        { speed: driver.speed, turnRate: driver.turnRate ?? yaw, travel: along },
+        reduced,
+      );
+      place(bodies, i, x, 0.6 + height, z, -heading);
+      transform.rotation.set(chassis.roll, -heading, 0, "YXZ");
+      transform.updateMatrix();
+      bodies.setMatrixAt(i, transform.matrix);
+      place(noses, i, x + c * 1.25, 0.5 + height, z + s * 1.25, -heading);
+      // The seat is now a backrest behind the driver.
+      place(seats, i, x - c * 0.78, 1.05 + height, z - s * 0.78, -heading, 0.5, 1, 1.1);
+      bodies.setColorAt(i, driver.number % 2 ? accent : highlight);
+      rig.place(
+        driver.playerId,
+        driver.number - 1,
+        pose,
+        {
+          status: driver.status,
+          drifting: driver.drifting,
+          elapsedMs: race.elapsedMs,
+          turnRate: driver.turnRate,
+        },
+        driver.number % 2 ? accent : highlight,
+        driver.number % 2 ? highlight : accent,
+        dt,
+        reduced,
+      );
+      for (let j = 0; j < 4; j++) {
+        const localX = j < 2 ? -0.75 : 0.75,
+          localZ = j % 2 ? -0.78 : 0.78;
+        place(
+          wheels,
+          i * 4 + j,
+          x + c * localX - s * localZ,
+          0.35 + height,
+          z + s * localX + c * localZ,
+          -heading,
+        );
+        transform.rotation.set(
+          0,
+          -heading + (j >= 2 ? chassis.steering : 0),
+          chassis.wheelRotation,
+          "YXZ",
+        );
+        transform.updateMatrix();
+        wheels.setMatrixAt(i * 4 + j, transform.matrix);
+      }
+      if (
+        race.powers?.effects.some(
+          (e) => e.playerId === driver.playerId && e.shieldMs > 0,
+        )
+      )
+        place(shields, shieldCount++, x, 0.9 + height, z, 0, 3.5, 3, 3.5);
+      const active =
+        driver.status === "RACING" && (driver.drifting || driver.boostRemainingMs > 0);
+      const strength = driftStrength(emission.get(driver.playerId) ?? 0, active, dt);
+      emission.set(driver.playerId, strength);
+      if (strength > 0.01 && !effects) {
+        const charged = driver.boostRemainingMs > 0 || driver.driftCharge >= 1;
+        for (const spark of driftEffectDescription(
+          effectTime + i * 0.17,
+          strength,
+          (driver.driftChargeMs ?? driver.driftCharge * 700) / 2400,
+          driver.boostRemainingMs > 0,
+          reduced,
+        ).points.filter((_, index) => index % sparkStride === 0)) {
+          if (sparkCount >= sparkBudget) break;
+          place(
+            sparks,
+            sparkCount,
+            x - c * spark.z - s * spark.x,
+            0.22 + spark.y + height,
+            z - s * spark.z + c * spark.x,
+            -heading,
+            spark.scale * 2.5,
+            spark.scale * 0.6,
+            spark.scale * 0.6,
+          );
+          sparks.setColorAt(sparkCount++, charged ? highlight : accent);
+        }
+      }
+      // Everyone but you gets a tag: a name in chase view, a number on the map.
+      const sprite =
+        driver.playerId === focusPlayerId ? undefined : label(driver, !!focusPlayerId);
+      if (sprite) {
+        sprite.position.set(x, 3.8 + height, z);
+        if (focusPlayerId) {
+          // A kart right beside the camera would get a screen-filling tag;
+          // shrink close tags so none grows past its size at a car length or so.
+          const gap =
+            focusX === undefined || focusZ === undefined
+              ? kartTagFullSizeGap
+              : Math.hypot(x - focusX, z - focusZ);
+          const fit = kartTagScale(gap);
+          sprite.scale.set(9 * fit, 2.25 * fit, 1);
+        }
+        sprite.visible = true;
+        tagged.add(sprite);
+      }
+    }
+    // A kart that left view, or the other view's tag, must not linger.
+    for (const sprite of labels.values())
+      if (!tagged.has(sprite)) sprite.visible = false;
+    for (const value of [bodies, noses, seats]) {
+      value.count = detailedVisible ? 0 : drivers.length;
+      value.instanceMatrix.needsUpdate = true;
+    }
+    rig.end(present);
+    if (effects)
+      vfxPool!.update({
+        raceId: race.raceId,
+        elapsedMs: race.elapsedMs,
+        dt,
+        tier: effects.tier,
+        paused: effects.paused,
+        reducedMotion: reduced,
+        presentation: race.presentation,
+        actors: drivers.map((driver) => {
+          const pose = poses.get(driver.playerId)!;
+          // Every course is flat; a sloped course would supply height and normal here.
+          const ground = undefined as
+            { y: number; normal?: [number, number, number] } | undefined;
+          return {
+            playerId: driver.playerId,
+            contact: driver.contact,
+            number: driver.number,
+            x: pose.x,
+            y: (ground?.y ?? 0) + (pose.height ?? 0),
+            clearance: pose.height ?? 0,
+            groundNormal: ground?.normal,
+            z: pose.z,
+            heading: pose.heading,
+            speed: driver.speed,
+            drifting: driver.drifting,
+            boosting: driver.boostRemainingMs > 0,
+            charge: driver.driftLevel ?? driver.driftCharge * 3,
+            status: driver.status,
+            surface: poly
+              ? poly.surfaceAt(pose.x, pose.z)
+              : Math.abs(Math.hypot(pose.x, pose.z) - 42) > 8
+                ? "dirt"
+                : "road",
+          } satisfies VfxActor;
+        }),
+      });
+    wheels.count = detailedVisible ? 0 : drivers.length * 4;
+    wheels.instanceMatrix.needsUpdate = true;
+    let gliderCount = 0;
+    for (const driver of drivers) {
+      const pose = poses.get(driver.playerId);
+      if (pose && (pose.height ?? 0) > 0.05)
+        place(
+          gliders,
+          gliderCount++,
+          pose.x,
+          (pose.height ?? 0) + 2.8,
+          pose.z,
+          -pose.heading,
+          1.5,
+          0.08,
+          6,
+        );
+    }
+    gliders.count = gliderCount;
+    gliders.instanceMatrix.needsUpdate = true;
+    let featureCount = 0;
+    if (race.courseEnabled)
+      for (const feature of course) {
+        const target = courseFeaturePose(feature, race.elapsedMs);
+        const previous = featurePoses.get(feature.id) ?? target;
+        const alpha = reduced ? 1 : 1 - Math.exp(-14 * Math.max(0, Math.min(0.1, dt)));
+        const pose = {
+          x: previous.x + (target.x - previous.x) * alpha,
+          z: previous.z + (target.z - previous.z) * alpha,
+        };
+        featurePoses.set(feature.id, pose);
+        const i = featureCount++;
+        place(
+          courseProps,
+          i,
+          pose.x,
+          feature.kind === "ramp" ? 0.6 : feature.kind === "hazard" ? 0.5 : 0.1,
+          pose.z,
+          -feature.heading,
+          feature.length / 0.65,
+          (feature.kind === "hazard" ? 1 : 0.15) / 0.9,
+          feature.width / 0.65,
+        );
+        if (feature.kind === "ramp") {
+          transform.rotation.z = 0.22;
+          transform.updateMatrix();
+          courseProps.setMatrixAt(i, transform.matrix);
+        }
+        courseProps.setColorAt(
+          i,
+          feature.kind === "hazard"
+            ? ink
+            : feature.kind === "ramp"
+              ? highlight
+              : accent,
+        );
+      }
+    courseProps.count = featureCount;
+    courseProps.instanceMatrix.needsUpdate = true;
+    if (courseProps.instanceColor) courseProps.instanceColor.needsUpdate = true;
+    let boxCount = 0;
+    for (const box of race.powers?.boxes ?? [])
+      if (box.available)
+        place(
+          itemBoxes,
+          boxCount++,
+          box.x,
+          1.1 + (reduced ? 0 : Math.sin(effectTime * 2) * 0.12),
+          box.z,
+          reduced ? Math.PI / 4 : effectTime,
+          1.7,
+          1.3,
+          1.7,
+        );
+    let oilCount = 0;
+    for (const oil of race.powers?.oils ?? [])
+      place(oilSlicks, oilCount++, oil.x, 0.09, oil.z, 0, 3.5, 0.05, 3.5);
+    itemBoxes.count = boxCount;
+    oilSlicks.count = oilCount;
+    const itemPoses =
+      race.presentation?.version === 3 ? race.presentation.items.projectiles : [];
+    const counts = { tennis: 0, bomb: 0, homing: 0 };
+    let fuseCount = 0;
+    const ids = new Set(itemPoses.slice(0, 64).map((item) => item.id));
+    for (const id of projectilePoses.keys())
+      if (!ids.has(id)) projectilePoses.delete(id);
+    for (const item of itemPoses.slice(0, 64)) {
+      const previous = projectilePoses.get(item.id) ?? item;
+      const alpha = reduced ? 1 : 1 - Math.exp(-Math.max(0, Math.min(0.1, dt)) * 20);
+      const pose = {
+        x: previous.x + (item.x - previous.x) * alpha,
+        z: previous.z + (item.z - previous.z) * alpha,
+        height: previous.height + (item.height - previous.height) * alpha,
+      };
+      projectilePoses.set(item.id, pose);
+      const groundY = 0;
+      const size = item.kind === "homing" ? 5 : item.kind === "bomb" ? 1.1 : 0.8;
+      place(
+        projectileBatches[item.kind],
+        counts[item.kind]++,
+        pose.x,
+        groundY + pose.height + 0.65,
+        pose.z,
+        0,
+        size,
+        size,
+        size,
+      );
+      if (item.kind === "bomb")
+        place(
+          bombFuses,
+          fuseCount++,
+          pose.x,
+          groundY + pose.height + 1.3,
+          pose.z,
+          0,
+          0.3,
+          0.3,
+          0.3,
+        );
+    }
+    for (const kind of ["tennis", "bomb", "homing"] as const) {
+      projectileBatches[kind].count = counts[kind];
+      projectileBatches[kind].instanceMatrix.needsUpdate = true;
+    }
+    bombFuses.count = fuseCount;
+    bombFuses.instanceMatrix.needsUpdate = true;
+    shields.count = shieldCount;
+    for (const m of [itemBoxes, oilSlicks, shields])
+      m.instanceMatrix.needsUpdate = true;
+    sparks.count = sparkCount;
+    sparks.instanceMatrix.needsUpdate = true;
+    if (sparks.instanceColor) sparks.instanceColor.needsUpdate = true;
+    if (bodies.instanceColor) bodies.instanceColor.needsUpdate = true;
+    // Marks and static props are created once. A theme change remounts the whole palette.
+  }
+  for (const value of instances) value.instanceMatrix.needsUpdate = true;
+  return {
+    scene,
+    update,
+    renderVfx(camera: THREE.Camera) {
+      if (vfxPreset)
+        vfx?.render(
+          vfxActive ? vfxPool!.view() : { particles: [], skids: [] },
+          camera,
+          vfxPreset,
+        );
+    },
+    vfxStats: () =>
+      vfxPool?.stats() ?? {
+        particles: 0,
+        skids: 0,
+        actors: 0,
+        capacity: { particles: 0, skids: 0 },
+        byKind: {} as Partial<Record<KartVfxKind, number>>,
+      },
+    resetVfx() {
+      vfxPool?.reset();
+    },
+    pose: (playerId: string) => poses.get(playerId),
+    /** Host switch for carrying other karts forward between room frames. */
+    setGlide(enabled: boolean) {
+      glideEnabled = enabled;
+    },
+    /** The kart drawn from local prediction, which skips pose smoothing. */
+    setPredicted(playerId: string | undefined) {
+      predictedPlayerId = playerId;
+    },
+    setDrivers: rig.setDrivers,
+    driverCounts: rig.counts,
+    renderStats: () => ({ drivers: poses.size, detailed: detailedVisible }),
+    dispose() {
+      vfxPool?.dispose();
+      vfx?.dispose();
+      rig.dispose();
+      geometries.forEach((g) => g.dispose());
+      materials.forEach((m) => m.dispose());
+      textures.forEach((t) => t.dispose());
+      instances.forEach((i) => i.dispose());
+      emission.clear();
+      poses.clear();
+      serverSpan.clear();
+      travel.clear();
+      featurePoses.clear();
+      labels.clear();
+      scene.clear();
+    },
+  };
+}
+
+/** A nickname short enough for a tag over a kart. */
+export function kartTagName(name: string): string {
+  const trimmed = name.trim();
+  return trimmed.length > 12 ? `${trimmed.slice(0, 11)}…` : trimmed;
+}
+
+/** At this many units from the followed kart, or further, a tag is full size. */
+export const kartTagFullSizeGap = 14;
+
+/**
+ * How big a chase-view tag is drawn, from 0.3 to 1, by its kart's distance from
+ * the followed kart. A tag is a fixed-size sprite, so without this a kart right
+ * beside the camera would carry a label that covers the phone screen.
+ */
+export function kartTagScale(gap: number): number {
+  if (!Number.isFinite(gap)) return 1;
+  return Math.max(0.3, Math.min(1, gap / kartTagFullSizeGap));
+}
+
+/**
+ * Lawn spots for scenery: points well off the road on both sides of the route,
+ * never on any road strip, so trees never block a racing line.
+ */
+export function trackside(
+  poly: NonNullable<ReturnType<typeof polylineTrack>>,
+  count: number,
+): [number, number][] {
+  const spots: [number, number][] = [];
+  const step = poly.route.lapLength / count;
+  for (let i = 0; i < count; i++) {
+    const side = i % 2 ? 1 : -1;
+    const spot = poly.lanePoint(step * (i + 0.5), side * (poly.halfWidth + 9));
+    const clear = poly.walls.every((wall) => {
+      const dx = wall.bx - wall.ax,
+        dz = wall.bz - wall.az,
+        t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((spot.x - wall.ax) * dx + (spot.z - wall.az) * dz) /
+              (dx * dx + dz * dz || 1),
+          ),
+        );
+      return Math.hypot(spot.x - (wall.ax + dx * t), spot.z - (wall.az + dz * t)) > 5;
+    });
+    if (clear && poly.surfaceAt(spot.x, spot.z) !== "road")
+      spots.push([spot.x, spot.z]);
+  }
+  return spots;
+}

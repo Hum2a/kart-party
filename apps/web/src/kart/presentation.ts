@@ -1,0 +1,130 @@
+import type { KartDriver } from "@kart-party/game";
+
+export type KartPose = Pick<KartDriver, "x" | "z" | "heading" | "height">;
+
+/** Plain render contract shared by the two Three versions; never a Three object. */
+export function kartVehiclePose(pose: KartPose) {
+  return {
+    version: 1 as const,
+    position: [pose.x, pose.height ?? 0, pose.z] as const,
+    heading: pose.heading,
+  };
+}
+
+/** Camera framing only. Uses a rendered server pose, never predicts a finish or movement. */
+export function kartCameraPose(
+  pose: KartPose,
+  reduced: boolean,
+  boost = 0,
+): {
+  position: readonly [number, number, number];
+  target: readonly [number, number, number];
+} {
+  const height = kartVehiclePose(pose).position[1];
+  const c = Math.cos(pose.heading),
+    s = Math.sin(pose.heading);
+  const pullback = Math.max(0, Math.min(1, Number.isFinite(boost) ? boost : 0)) * 2;
+  return reduced
+    ? {
+        position: [pose.x, 24 + height, pose.z + 0.01] as const,
+        target: [pose.x, height, pose.z] as const,
+      }
+    : {
+        position: [
+          pose.x - c * (9 + pullback),
+          6 + height,
+          pose.z - s * (9 + pullback),
+        ] as const,
+        target: [pose.x + c * 5, 0.8 + height, pose.z + s * 5] as const,
+      };
+}
+
+/** Eased cosmetic response to an accepted boost; no local boost expiry/timer. */
+export function boostCameraAmount(
+  current: number,
+  active: boolean,
+  delta: number,
+  reduced: boolean,
+) {
+  if (reduced) return 0;
+  const from = Math.max(0, Math.min(1, Number.isFinite(current) ? current : 0));
+  const dt = Number.isFinite(delta) ? Math.max(0, Math.min(0.1, delta)) : 0;
+  return from + ((active ? 1 : 0) - from) * (1 - Math.exp(-8 * dt));
+}
+/** Visual smoothing only: no prediction, physics, checkpoint or timer authority. */
+export function smoothKartPose(
+  from: KartPose,
+  to: KartPose,
+  deltaSeconds: number,
+  reduced: boolean,
+): KartPose {
+  if (!reduced && deltaSeconds <= 0) return { ...from };
+  if (reduced || Math.hypot(to.x - from.x, to.z - from.z) > 8) return { ...to };
+  const alpha = 1 - Math.exp(-14 * Math.max(0, Math.min(0.1, deltaSeconds)));
+  const angle = Math.atan2(
+    Math.sin(to.heading - from.heading),
+    Math.cos(to.heading - from.heading),
+  );
+  return {
+    x: from.x + (to.x - from.x) * alpha,
+    z: from.z + (to.z - from.z) * alpha,
+    heading: from.heading + angle * alpha,
+    ...(to.height !== undefined || from.height !== undefined
+      ? { height: (from.height ?? 0) + ((to.height ?? 0) - (from.height ?? 0)) * alpha }
+      : {}),
+  };
+}
+
+/** Longest a server pose is carried forward before waiting for the next frame. */
+export const extrapolateLimitSeconds = 0.25;
+
+/**
+ * Carries another racer's last server pose forward along its heading at its
+ * reported speed, for at most a quarter of a second. Remote karts no longer
+ * use this; they blend the last two server poses instead. Drawing only.
+ */
+export function extrapolateKartPose(
+  pose: KartPose,
+  speed: number,
+  ageSeconds: number,
+): KartPose {
+  const age = Math.max(
+    0,
+    Math.min(extrapolateLimitSeconds, Number.isFinite(ageSeconds) ? ageSeconds : 0),
+  );
+  const v = Number.isFinite(speed) ? speed : 0;
+  if (!age || !v) return { ...pose };
+  return {
+    ...pose,
+    x: pose.x + Math.cos(pose.heading) * v * age,
+    z: pose.z + Math.sin(pose.heading) * v * age,
+  };
+}
+
+/**
+ * Draws another racer between the previous server pose and the new one.
+ * Progress is how far the newest gap has played: 0 is the older pose, 1 is
+ * the pose that just arrived. Height moves with the kart, so a ramp lifts the
+ * wing across the gap. Drawing only: the room decides every position.
+ */
+export function blendKartPose(
+  from: KartPose,
+  to: KartPose,
+  progress: number,
+): KartPose {
+  const t = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 1;
+  const angle = Math.atan2(
+    Math.sin(to.heading - from.heading),
+    Math.cos(to.heading - from.heading),
+  );
+  const height =
+    to.height !== undefined || from.height !== undefined
+      ? (from.height ?? 0) + ((to.height ?? 0) - (from.height ?? 0)) * t
+      : undefined;
+  return {
+    x: from.x + (to.x - from.x) * t,
+    z: from.z + (to.z - from.z) * t,
+    heading: from.heading + angle * t,
+    ...(height !== undefined ? { height } : {}),
+  };
+}
