@@ -6,8 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "cf-typegen": "wrangler types",
-    "deploy": "wrangler deploy --env production"
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@kart-party/game": "0.0.0",

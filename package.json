@@ -14,7 +14,7 @@
     "dev": "npm run dev -w @kart-party/web",
     "build": "npm run build -w @kart-party/web",
     "preview": "npm run preview -w @kart-party/web",
-    "deploy": "npm run build && npm run deploy -w @kart-party/worker",
+    "deploy": "node scripts/deploy.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:game": "npm run test -w @kart-party/game",

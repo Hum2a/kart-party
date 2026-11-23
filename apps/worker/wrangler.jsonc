@@ -2,6 +2,8 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   // One Worker serves the built web app and the room API.
   "name": "kart-party-local",
+  // The account that holds the humza.website zone.
+  "account_id": "e6d408ebc85e159e6e22ee963641d342",
   "main": "./src/index.ts",
   "compatibility_date": "2026-09-22",
   "vars": {

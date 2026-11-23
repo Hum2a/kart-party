@@ -4,7 +4,7 @@ A browser kart racer. Drift, boost and throw items on three original tracks, on 
 own against CPU drivers or online with up to eight friends, each on their own phone
 or computer.
 
-Planned home: **https://kart.humza.website**
+Play it at **https://kart.humza.website**
 
 ## What is in it
 
@@ -68,13 +68,14 @@ npm run build        # production web build plus the Worker bundle
 
 ## Deploying
 
-The Worker config is `apps/worker/wrangler.jsonc`. Its `production` environment
-serves `kart.humza.website` as a custom domain, which must be a zone on the same
-Cloudflare account.
+The Worker config is `apps/worker/wrangler.jsonc`. It pins the Cloudflare account
+that holds the `humza.website` zone, and its `production` environment serves
+`kart.humza.website` as a custom domain. `npm run deploy` builds the web app against
+that environment and deploys the generated Worker and assets.
 
 ```sh
 npx wrangler login
-npm run deploy       # builds, then deploys the production environment
+npm run deploy       # production build, then wrangler deploy
 ```
 
 ## Provenance
