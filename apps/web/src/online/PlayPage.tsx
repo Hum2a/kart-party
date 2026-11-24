@@ -4,8 +4,11 @@ import { nicknameSchema, roomCodeSchema } from "@kart-party/game";
 import { Button, LinkButton, TextField } from "../ui/primitives";
 import { saveName, savedName } from "../live/identity";
 import { createRoom, roomExists } from "../api/rooms";
+import { useMusic } from "../audio/use-music";
+import { SoundButton } from "../audio/SoundSettings";
 
 export function PlayPage() {
+  useMusic("menu");
   const navigate = useNavigate();
   const [name, setName] = useState(savedName);
   const [code, setCode] = useState("");
@@ -26,9 +29,12 @@ export function PlayPage() {
   return (
     <main className="mx-auto grid max-w-xl gap-6 px-4 pb-16 pt-8">
       <header>
-        <LinkButton to="/" variant="secondary" className="mb-4 min-h-10 px-3 text-base">
-          ← Home
-        </LinkButton>
+        <div className="mb-4 flex items-center gap-3">
+          <LinkButton to="/" variant="secondary" className="min-h-10 px-3 text-base">
+            ← Home
+          </LinkButton>
+          <SoundButton />
+        </div>
         <h1 className="wordmark text-4xl sm:text-5xl">Race friends</h1>
         <p className="text-muted">
           Up to eight people, each on their own device. Share the four-letter code.

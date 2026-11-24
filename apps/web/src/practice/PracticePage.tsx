@@ -32,6 +32,9 @@ import {
 import { useLocalRace, practicePlayerId, type PracticeSetup } from "./local-race";
 import { formatGap, formatRaceTime, readBest, readGhost } from "./records";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
+import { useMusic } from "../audio/use-music";
+import { playSfx } from "../audio/sfx";
+import { SoundButton } from "../audio/SoundSettings";
 
 type PracticeMode = "race" | "grandPrix";
 type PracticePlan = {
@@ -86,6 +89,7 @@ export function PracticePage() {
 }
 
 function PracticeSetupForm({ onStart }: { onStart: (plan: PracticePlan) => void }) {
+  useMusic("menu");
   const [name, setName] = useState(() => savedName() || "Racer");
   const [driver, setDriver] = useState<DriverStyle>(() => savedDriver() ?? "racer");
   const [paint, setPaint] = useState<KartPaint>(() => savedPaint() ?? "flame");
@@ -107,13 +111,12 @@ function PracticeSetupForm({ onStart }: { onStart: (plan: PracticePlan) => void 
     <main className="mx-auto grid max-w-4xl gap-6 px-4 pb-16 pt-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <LinkButton
-            to="/"
-            variant="secondary"
-            className="mb-4 min-h-10 px-3 text-base"
-          >
-            ← Home
-          </LinkButton>
+          <div className="mb-4 flex items-center gap-3">
+            <LinkButton to="/" variant="secondary" className="min-h-10 px-3 text-base">
+              ← Home
+            </LinkButton>
+            <SoundButton />
+          </div>
           <h1 className="wordmark text-4xl sm:text-5xl">Practice</h1>
           <p className="text-muted">
             A single race, a three-race Grand Prix, or a time trial against your ghost.
@@ -245,6 +248,12 @@ function PracticeRace({
   const cup = grandPrix ? kartCup(grandPrix.cupId) : undefined;
   const table = grandPrix ? grandPrixTable(grandPrix.races) : [];
   const finalRace = Boolean(grandPrix && grandPrixDone(grandPrix));
+  // A finished cup gets its own theme and a fanfare.
+  const celebrating = Boolean(outcome && finalRace);
+  useMusic(celebrating ? "podium" : null);
+  useEffect(() => {
+    if (celebrating) playSfx("podium");
+  }, [celebrating]);
   const nextTrack = grandPrix ? grandPrixNextTrack(grandPrix) : undefined;
   const [splitVisible, setSplitVisible] = useState(false);
   useEffect(() => {

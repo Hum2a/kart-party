@@ -1,13 +1,19 @@
 import { motion } from "motion/react";
 import { kartTrackCatalogue } from "@kart-party/game";
 import { LinkButton } from "../ui/primitives";
+import { SoundButton } from "../audio/SoundSettings";
 import { TrackPreview } from "../race/TrackPreview";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
+import { useMusic } from "../audio/use-music";
 
 export function HomePage() {
+  useMusic("menu");
   const reduced = usePrefersReducedMotion();
   return (
     <main className="mx-auto grid max-w-5xl gap-10 px-4 pb-16 pt-10 sm:pt-16">
+      <div className="flex justify-end">
+        <SoundButton />
+      </div>
       <motion.header
         className="grid gap-5"
         initial={{ opacity: 0, y: reduced ? 0 : 16 }}

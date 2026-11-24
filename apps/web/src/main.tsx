@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { HomePage } from "./home/HomePage";
 import "./app.css";
+import { installAudioLifecycle } from "./audio/mixer";
+
+// Audio starts on the first tap or key press and pauses while the tab is hidden.
+installAudioLifecycle();
 
 const PracticePage = lazy(() =>
   import("./practice/PracticePage").then((m) => ({ default: m.PracticePage })),

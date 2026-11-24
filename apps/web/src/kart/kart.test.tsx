@@ -710,10 +710,10 @@ it("lays out each kart state for landscape and keeps race notices visible over t
   expect(phone().getAttribute("data-layout")).toBe("grid");
   await waitFor(() => expect(notice()?.textContent).toContain("Grid slot 2 of 2"));
   // One big tap turns race sound on, and the prompt then leaves.
-  const prompt = screen.getByRole("button", { name: "🔊 Tap for race sound" });
+  const prompt = screen.getByRole("button", { name: "🔊 Tap to turn sound on" });
   act(() => prompt.click());
   await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "🔊 Tap for race sound" })).toBeNull(),
+    expect(screen.queryByRole("button", { name: "🔊 Tap to turn sound on" })).toBeNull(),
   );
   expect(notice()?.parentElement).toBe(phone());
   expect(notice()?.tagName).not.toBe("P");

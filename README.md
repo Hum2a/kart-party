@@ -31,7 +31,7 @@ Drift, slipstream, glide off ramps, and throw items across three procedural trac
 - **One Shared Rulebook** — Practice and online rooms both run every race through [`RaceSession`](packages/game/src/session.ts). No duplicated physics loops, lap counters, or scoring paths.
 - **Instant Feel + Authoritative Rooms** — Local client prediction makes steering feel immediate while the [`KartRoom`](apps/worker/src/room.ts) Durable Object ticks at **10 Hz**, persists state to SQLite KV before acknowledging actions, and cleans up idle rooms after 6 hours.
 - **Built for Any Device** — Full keyboard, adaptive multi-touch mobile controls (thumb pad or slider, swappable sides, vibration haptics), and standard gamepad support with configurable sensitivity and deadzone.
-- **Adaptive Graphics & Synthesised Audio** — Live frame-health probing scales pixel ratio and VFX budgets automatically (`Auto` / `High` / `Low`), paired with an opt-in Web Audio engine note and race chimes.
+- **Adaptive Graphics & Synthesised Audio** — Live frame-health probing scales pixel ratio and VFX budgets automatically (`Auto` / `High` / `Low`). Every sound is generated in code with Web Audio: an original soundtrack (a menu theme, one theme per track and a podium theme), 30 sound effects for drifts, boosts, items, bumps and laps, and an engine note that follows your speed. Music and effects have their own volume, with mute, remembered per browser.
 
 ---
 

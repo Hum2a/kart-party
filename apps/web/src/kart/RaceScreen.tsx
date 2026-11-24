@@ -23,6 +23,7 @@ import { KartRaceHud } from "./KartRaceHud";
 import { useRaceFeedback } from "./useRaceFeedback";
 import { ordinal, raceLaps } from "./race-callouts";
 import "./race-hud.css";
+import { SoundSettings } from "../audio/SoundSettings";
 
 const lapWords = (laps: number) => (laps === 1 ? "ONE LAP" : `${laps} LAPS`);
 const windowWords = (ms: number) =>
@@ -276,7 +277,7 @@ export function RaceScreen({
             exit={{ opacity: 0 }}
             transition={{ duration: reduced ? 0.12 : 0.2, ease: "easeOut" }}
           >
-            🔊 Tap for race sound
+            🔊 Tap to turn sound on
           </motion.button>
         ) : null}
       </AnimatePresence>
@@ -410,14 +411,7 @@ export function RaceScreen({
           extraSettings={
             <>
               {contactFeedback.settings}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={feedback.soundOn}
-                  onChange={feedback.toggleSound}
-                />{" "}
-                Race sound and buzzes (engine, laps, places, finish)
-              </label>
+              <SoundSettings />
             </>
           }
         />

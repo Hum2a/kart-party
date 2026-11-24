@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -29,6 +29,9 @@ import {
 } from "../live/identity";
 import { useRoom } from "./use-room";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
+import { useMusic } from "../audio/use-music";
+import { playSfx } from "../audio/sfx";
+import { SoundButton } from "../audio/SoundSettings";
 
 export function RoomPage() {
   const params = useParams();
@@ -229,6 +232,10 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
   const settings = view.settings;
   const gp = view.grandPrix;
   const gpFinished = Boolean(gp && gp.round >= gp.total);
+  useMusic(view.phase === "results" && gpFinished ? "podium" : "menu");
+  useEffect(() => {
+    if (view.phase === "results" && gpFinished) playSfx("podium");
+  }, [view.phase, gpFinished]);
   // The track the next Grand Prix race uses, while a cup is under way.
   const gpNextTrack =
     gp && !gpFinished && settings.mode === "grandPrix"
@@ -238,13 +245,12 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
     <main className="mx-auto grid max-w-4xl gap-6 px-4 pb-16 pt-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <LinkButton
-            to="/"
-            variant="secondary"
-            className="mb-4 min-h-10 px-3 text-base"
-          >
-            ← Leave
-          </LinkButton>
+          <div className="mb-4 flex items-center gap-3">
+            <LinkButton to="/" variant="secondary" className="min-h-10 px-3 text-base">
+              ← Leave
+            </LinkButton>
+            <SoundButton />
+          </div>
           <p className="text-sm font-bold uppercase tracking-wide text-muted">
             Room code
           </p>

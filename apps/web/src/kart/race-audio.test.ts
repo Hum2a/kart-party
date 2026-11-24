@@ -1,101 +1,57 @@
-import { afterEach, expect, it, vi } from "vitest";
-import {
-  createRaceAudio,
-  raceSoundKey,
-  readRaceSoundPreference,
-  writeRaceSoundPreference,
-} from "./race-audio";
+import { expect, it } from "vitest";
+import { createRaceAudio } from "./race-audio";
+import { createMixer } from "../audio/mixer";
+import { fakeAudioContext, memoryStorage } from "../audio/fake-context.test-support";
 
-function fakeContext() {
-  const param = () => ({
-    value: 0,
-    setTargetAtTime: vi.fn(),
-    setValueAtTime: vi.fn(),
-    exponentialRampToValueAtTime: vi.fn(),
-  });
-  const oscillators: { frequency: ReturnType<typeof param>; start: unknown }[] = [];
-  const context = {
-    currentTime: 1,
-    destination: {},
-    state: "suspended",
-    resume: vi.fn(() => Promise.resolve()),
-    suspend: vi.fn(() => Promise.resolve()),
-    close: vi.fn(() => Promise.resolve()),
-    createOscillator: vi.fn(() => {
-      const osc = {
-        type: "",
-        frequency: param(),
-        connect: vi.fn(),
-        start: vi.fn(),
-        stop: vi.fn(),
-      };
-      oscillators.push(osc);
-      return osc;
-    }),
-    createGain: vi.fn(() => ({ gain: param(), connect: vi.fn() })),
-    createBiquadFilter: vi.fn(() => ({
-      type: "",
-      frequency: param(),
-      connect: vi.fn(),
-    })),
-  };
-  return { context, oscillators };
-}
-
-afterEach(() => localStorage.clear());
-
-it("stays silent until enabled, then follows speed and plays chimes", () => {
-  const { context, oscillators } = fakeContext();
-  const audio = createRaceAudio(() => context as never);
+it("stays silent until audio is unlocked, then follows speed and boosts", () => {
+  const { context, oscillators } = fakeAudioContext();
+  const target = createMixer(() => context, memoryStorage());
+  const audio = createRaceAudio(target);
   audio.engine(0.5, true);
-  audio.cue("go");
-  expect(context.createOscillator).not.toHaveBeenCalled();
-  expect(audio.enable()).toBe(true);
-  expect(context.resume).toHaveBeenCalled();
-  expect(audio.enabled).toBe(true);
-  // One engine oscillator, then the speed sets its pitch.
-  expect(oscillators).toHaveLength(1);
-  audio.engine(1, true);
-  expect(oscillators[0]!.frequency.setTargetAtTime).toHaveBeenLastCalledWith(
-    205,
-    1,
-    0.08,
-  );
-  // A bad speed falls back to idle rather than throwing.
-  audio.engine(Number.NaN, true);
-  expect(oscillators[0]!.frequency.setTargetAtTime).toHaveBeenLastCalledWith(
-    55,
-    1,
-    0.08,
-  );
-  audio.cue("finish");
-  expect(oscillators).toHaveLength(7);
-  audio.disable();
   audio.cue("lap");
-  expect(oscillators).toHaveLength(7);
-  audio.dispose();
-  expect(context.close).toHaveBeenCalled();
-});
-
-it("reports no sound when the browser has no Web Audio", () => {
-  const audio = createRaceAudio(() => null);
-  expect(audio.enable()).toBe(false);
+  expect(context.createOscillator).not.toHaveBeenCalled();
   expect(audio.enabled).toBe(false);
+  expect(audio.enable()).toBe(true);
+  expect(audio.enabled).toBe(true);
+  expect(context.resume).toHaveBeenCalled();
+  audio.engine(1, true);
+  // Two detuned oscillators make the engine note; speed sets their pitch.
+  expect(oscillators.slice(0, 2).map((o) => o.type)).toEqual(["sawtooth", "square"]);
+  expect(oscillators[0]!.frequency.setTargetAtTime).toHaveBeenLastCalledWith(
+    190,
+    1,
+    0.08,
+  );
+  audio.engine(1, true, true);
+  expect(oscillators[0]!.frequency.setTargetAtTime).toHaveBeenLastCalledWith(
+    230,
+    1,
+    0.08,
+  );
+  const before = context.createOscillator.mock.calls.length;
+  audio.cue("lap");
+  expect(context.createOscillator.mock.calls.length).toBeGreaterThan(before);
 });
 
-it("remembers the choice on this phone and survives refused storage", () => {
-  expect(readRaceSoundPreference()).toBe(false);
-  writeRaceSoundPreference(true);
-  expect(localStorage.getItem(raceSoundKey)).toBe("on");
-  expect(readRaceSoundPreference()).toBe(true);
-  const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-    throw new Error("blocked");
-  });
-  expect(readRaceSoundPreference()).toBe(false);
-  spy.mockRestore();
-  const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-    throw new Error("blocked");
-  });
-  expect(() => writeRaceSoundPreference(false)).not.toThrow();
-  write.mockRestore();
+it("mutes through the shared mixer and plays nothing while muted", () => {
+  const { context } = fakeAudioContext();
+  const target = createMixer(() => context, memoryStorage());
+  const audio = createRaceAudio(target);
+  audio.enable();
+  audio.disable();
+  expect(target.prefs.muted).toBe(true);
+  expect(audio.enabled).toBe(false);
+  const before = context.createOscillator.mock.calls.length;
+  audio.cue("finish");
+  expect(context.createOscillator.mock.calls.length).toBe(before);
+  audio.enable();
+  expect(target.prefs.muted).toBe(false);
+});
+
+it("reports no sound where the browser has no Web Audio", () => {
+  const audio = createRaceAudio(createMixer(() => null, memoryStorage()));
+  expect(audio.enable()).toBe(false);
+  audio.engine(1, true);
+  audio.cue("go" as never);
+  audio.dispose();
 });

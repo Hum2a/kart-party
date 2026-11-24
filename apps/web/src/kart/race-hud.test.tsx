@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { KartRaceView } from "@kart-party/game";
 import { KartRaceHud, raceRivals } from "./KartRaceHud";
 import { bannerMs, useRaceFeedback } from "./useRaceFeedback";
+import type { MusicPlayer } from "../audio/music";
 import type { RaceAudio } from "./race-audio";
 vi.mock("../device/haptics", () => ({ buzz: vi.fn() }));
 import { buzz } from "../device/haptics";
@@ -33,6 +34,15 @@ function view(rows: Row[], patch: Partial<KartRaceView> = {}): KartRaceView {
     leaderboard: rows.map((row) => ({ playerId: row.id, place: row.place })),
     ...patch,
   } as unknown as KartRaceView;
+}
+function fakePlayer(): MusicPlayer {
+  return {
+    playing: null,
+    play: vi.fn(),
+    setTempo: vi.fn(),
+    stop: vi.fn(),
+    dispose: vi.fn(),
+  };
 }
 function fakeAudio(): RaceAudio {
   let enabled = false;
@@ -90,13 +100,17 @@ it("hides the lap counter in a one-lap race and shows a charging draft", () => {
 
 it("turns race moments into banners and buzzes, with sound only when it is on", () => {
   const audio = fakeAudio();
+  const player = fakePlayer();
   const start = view([
     { id: "a", place: 1 },
     { id: "b", place: 2 },
   ]);
-  const hook = renderHook(({ race }) => useRaceFeedback(race, { open: true, audio }), {
-    initialProps: { race: start },
-  });
+  const hook = renderHook(
+    ({ race }) => useRaceFeedback(race, { open: true, audio, player }),
+    {
+      initialProps: { race: start },
+    },
+  );
   // Sound off: banners still show and the phone still buzzes.
   hook.rerender({
     race: view([
@@ -108,7 +122,6 @@ it("turns race moments into banners and buzzes, with sound only when it is on", 
   expect(buzz).toHaveBeenCalledWith(30);
   act(() => hook.result.current.toggleSound());
   expect(hook.result.current.soundOn).toBe(true);
-  expect(localStorage.getItem("26.kart.race-sound")).toBe("on");
   hook.rerender({
     race: view([
       { id: "a", place: 2 },
@@ -117,6 +130,8 @@ it("turns race moments into banners and buzzes, with sound only when it is on", 
   });
   expect(hook.result.current.banner?.text).toBe("FINAL LAP");
   expect(audio.cue).toHaveBeenCalledWith("final-lap");
+  // The final lap speeds the track's music up.
+  expect(player.setTempo).toHaveBeenCalledWith(1.1);
   expect(buzz).toHaveBeenCalledWith([60, 50, 60]);
   hook.rerender({
     race: view([
@@ -126,12 +141,13 @@ it("turns race moments into banners and buzzes, with sound only when it is on", 
   });
   expect(audio.cue).toHaveBeenCalledWith("finish");
   // The engine note stops once this kart has finished.
-  expect(vi.mocked(audio.engine).mock.lastCall).toEqual([20 / 30, false]);
+  expect(vi.mocked(audio.engine).mock.lastCall).toEqual([20 / 30, false, false]);
+  // The track's music stops for the finish fanfare.
+  expect(player.stop).toHaveBeenCalled();
   act(() => vi.advanceTimersByTime(bannerMs));
   expect(hook.result.current.banner).toBeUndefined();
   act(() => hook.result.current.toggleSound());
   expect(audio.disable).toHaveBeenCalled();
-  expect(localStorage.getItem("26.kart.race-sound")).toBe("off");
 });
 
 it("names the drivers one place ahead and behind", () => {

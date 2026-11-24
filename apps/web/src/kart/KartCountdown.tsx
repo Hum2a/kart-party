@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type { KartRaceView } from "@kart-party/game";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 import { buzz } from "../device/haptics";
+import { playSfx } from "../audio/sfx";
 import { useRaceCountdown } from "./countdown";
 import type { RaceStage } from "./race-stage";
 
@@ -23,8 +24,16 @@ export function KartCountdown({
   const last = useRef({ beat: null as typeof beat, enabled });
   useEffect(() => {
     const resuming = enabled && !last.current.enabled;
-    if (enabled && !resuming && haptics && beat !== null && beat !== last.current.beat)
+    if (
+      enabled &&
+      !resuming &&
+      haptics &&
+      beat !== null &&
+      beat !== last.current.beat
+    ) {
       buzz(beat === "GO" ? [40, 30, 90] : [18]);
+      playSfx(beat === "GO" ? "go" : "count");
+    }
     last.current = { beat, enabled };
   }, [beat, haptics, enabled]);
   return (
