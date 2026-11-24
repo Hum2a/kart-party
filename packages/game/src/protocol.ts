@@ -67,6 +67,41 @@ export const defaultRoomSettings: RoomSettings = {
   cupId: "starter-cup",
 };
 
+/** Quick reactions anyone in a room can send. Drawn as emoji by the web app. */
+export const kartEmotes = [
+  "wave",
+  "thumbs",
+  "laugh",
+  "wow",
+  "grr",
+  "fire",
+  "clap",
+  "trophy",
+] as const;
+export const kartEmoteSchema = z.enum(kartEmotes);
+export type KartEmote = z.infer<typeof kartEmoteSchema>;
+
+/** What a public room shows on the quick-play list. No names: just the room. */
+export const publicRoomSchema = z
+  .object({
+    code: roomCodeSchema,
+    players: z.number().int().min(0).max(maxRoomPlayers),
+    phase: z.enum(["lobby", "countdown", "racing", "results"]),
+    mode: z.enum(["race", "grandPrix"]),
+    trackId: kartTrackIdSchema,
+    cupId: kartCupIdSchema,
+    updatedAt: z.number().int().nonnegative(),
+  })
+  .strict();
+export type PublicRoom = z.infer<typeof publicRoomSchema>;
+/** A listed room that has not reported for this long drops off the list. */
+export const publicRoomTtlMs = 20 * 60 * 1000;
+export const maxPublicRooms = 30;
+/** The body of `GET /api/rooms/public`. */
+export const publicRoomListSchema = z
+  .object({ rooms: z.array(publicRoomSchema).max(maxPublicRooms) })
+  .strict();
+
 export const roomPhaseSchema = z.enum(["lobby", "countdown", "racing", "results"]);
 export type RoomPhase = z.infer<typeof roomPhaseSchema>;
 
@@ -76,6 +111,8 @@ export const roomPlayerSchema = z
     name: nicknameSchema,
     driver: lobbyDriverSchema,
     connected: z.boolean(),
+    /** Ticked "ready" for the next race. The host's own start counts as ready. */
+    ready: z.boolean(),
     wins: z.number().int().nonnegative(),
   })
   .strict();
@@ -100,6 +137,10 @@ export const roomViewSchema = z
     hostId: playerIdSchema.nullable(),
     selfId: playerIdSchema,
     players: z.array(roomPlayerSchema).max(maxRoomPlayers),
+    /** A locked room lets only its own racers back in. */
+    locked: z.boolean(),
+    /** Shown on the public quick-play list while unlocked and not full. */
+    listed: z.boolean(),
     /** Server clock time when GO happens; present during the countdown and race. */
     goAt: z.number().int().nonnegative().optional(),
     raceId: z.string().min(1).max(80).optional(),
@@ -146,6 +187,18 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ type: z.literal("start"), requestId }).strict(),
+  z.object({ type: z.literal("ready"), requestId, ready: z.boolean() }).strict(),
+  z
+    .object({
+      type: z.literal("access"),
+      requestId,
+      locked: z.boolean(),
+      listed: z.boolean(),
+    })
+    .strict(),
+  z.object({ type: z.literal("kick"), requestId, playerId: playerIdSchema }).strict(),
+  z.object({ type: z.literal("host"), requestId, playerId: playerIdSchema }).strict(),
+  z.object({ type: z.literal("emote"), emote: kartEmoteSchema }).strict(),
   z.object({ type: z.literal("lobby"), requestId }).strict(),
   z
     .object({
@@ -193,8 +246,24 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("pong"), t: z.number(), serverNow: z.number() }).strict(),
   z
     .object({
+      type: z.literal("emote"),
+      /** Unique per room session, so the same reaction twice shows twice. */
+      id: z.number().int().nonnegative(),
+      playerId: playerIdSchema,
+      emote: kartEmoteSchema,
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("error"),
-      code: z.enum(["full", "bad-request", "rate-limited", "not-found", "kicked"]),
+      code: z.enum([
+        "full",
+        "bad-request",
+        "rate-limited",
+        "not-found",
+        "kicked",
+        "locked",
+      ]),
       message: z.string().max(200),
     })
     .strict(),

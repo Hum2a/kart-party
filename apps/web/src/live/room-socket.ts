@@ -1,5 +1,6 @@
 import type {
   ClientMessage,
+  KartEmote,
   KartInput,
   KartRaceView,
   RoomView,
@@ -9,12 +10,14 @@ import { noteServerTime } from "./server-clock";
 import { saveToken, savedToken, type Identity } from "./identity";
 
 export type ConnectionStatus =
-  "connecting" | "open" | "reconnecting" | "full" | "closed";
+  "connecting" | "open" | "reconnecting" | "full" | "closed" | "kicked" | "locked";
+export type EmoteEvent = { id: number; playerId: string; emote: KartEmote };
 export type RoomEvent =
   | { kind: "status"; status: ConnectionStatus; message?: string }
   | { kind: "welcome"; playerId: string }
   | { kind: "room"; room: RoomView }
-  | { kind: "race"; race: KartRaceView };
+  | { kind: "race"; race: KartRaceView }
+  | { kind: "emote"; emote: EmoteEvent };
 export type Ack = { ok: boolean; message?: string };
 
 /** Full jitter, capped: a room's worth of phones must not reconnect in step. */
@@ -29,8 +32,14 @@ const requestTimeoutMs = 8_000;
 
 type Requestable = Exclude<
   ClientMessage,
-  { type: "hello" } | { type: "input" } | { type: "ping" }
+  { type: "hello" } | { type: "input" } | { type: "ping" } | { type: "emote" }
 >;
+/** Close codes after which the room will not take this socket back. */
+const finalCloses: Record<number, ConnectionStatus> = {
+  4003: "kicked",
+  4004: "closed",
+  4005: "locked",
+};
 type RequestBody = Requestable extends infer M
   ? M extends { requestId: string }
     ? Omit<M, "requestId">
@@ -118,6 +127,12 @@ export function openRoomSocket(
         case "race":
           listener({ kind: "race", race: message.race });
           return;
+        case "emote":
+          listener({
+            kind: "emote",
+            emote: { id: message.id, playerId: message.playerId, emote: message.emote },
+          });
+          return;
         case "ack": {
           const entry = pending.get(message.requestId);
           if (!entry) return;
@@ -127,9 +142,19 @@ export function openRoomSocket(
           return;
         }
         case "error":
-          if (message.code === "full") {
+          if (
+            message.code === "full" ||
+            message.code === "kicked" ||
+            message.code === "locked"
+          ) {
             stopped = true;
-            listener({ kind: "status", status: "full", message: message.message });
+            // A removed racer starts afresh if they come back.
+            if (message.code === "kicked") saveToken(code, null);
+            listener({
+              kind: "status",
+              status: message.code,
+              message: message.message,
+            });
           }
           return;
       }
@@ -138,12 +163,19 @@ export function openRoomSocket(
       clearInterval(heartbeat);
       settleAll("Connection lost. Try again in a moment.");
       if (stopped) return;
-      if (event.code === 4004) {
+      const final = finalCloses[event.code];
+      if (final) {
         stopped = true;
+        if (final === "kicked") saveToken(code, null);
         listener({
           kind: "status",
-          status: "closed",
-          message: "This room has closed.",
+          status: final,
+          message:
+            final === "closed"
+              ? "This room has closed."
+              : final === "locked"
+                ? "The host has locked this room."
+                : "The host removed you from this room.",
         });
         return;
       }
@@ -168,6 +200,10 @@ export function openRoomSocket(
         }, requestTimeoutMs);
         pending.set(requestId, { resolve, timer });
       });
+    },
+    /** Fire and forget: a reaction that misses a dropped socket is not retried. */
+    emote(emote: KartEmote) {
+      raw({ type: "emote", emote });
     },
     sendInput(input: KartInput) {
       if (socket && socket.bufferedAmount >= maxBufferedBytes) return;

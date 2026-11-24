@@ -26,6 +26,8 @@ export function takeToken(
 export const commandRateLimit: RateLimit = { capacity: 30, refillPerSecond: 3 };
 /** Live drafts. The phone sends at most five a second while typing. */
 export const draftRateLimit: RateLimit = { capacity: 10, refillPerSecond: 6 };
+/** Emotes: a short burst, then one every two seconds, so a room cannot be spammed. */
+export const emoteRateLimit: RateLimit = { capacity: 4, refillPerSecond: 0.5 };
 /** Clock samples: five on connect, then one every twenty seconds. */
 export const timeRateLimit: RateLimit = { capacity: 8, refillPerSecond: 0.25 };
 /** Device and connection reports: on phase changes, resizes and once a minute. */

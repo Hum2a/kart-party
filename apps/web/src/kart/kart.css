@@ -1675,3 +1675,55 @@ body:has(.kart-phone) {
   background: var(--highlight);
   color: var(--highlight-foreground);
 }
+
+/* Watching a race: a late joiner, or a racer who has crossed the line. */
+.kart-watch {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.kart-watch-viewport {
+  height: clamp(220px, 48dvh, 520px);
+}
+.kart-watch-label {
+  position: absolute;
+  z-index: 3;
+  top: 0.5rem;
+  left: 0.5rem;
+  max-width: calc(100% - 1rem);
+  padding: 0.3rem 0.7rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--background) 85%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  pointer-events: none;
+}
+.kart-watch-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.kart-watch-button {
+  min-width: 2.9rem;
+  min-height: 2.9rem;
+  padding: 0.3rem 0.9rem;
+  font-weight: 800;
+  touch-action: manipulation;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+.kart-watch-button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+.kart-watch-button:hover {
+  border-color: var(--accent);
+}
+.kart-watch-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

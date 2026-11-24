@@ -64,13 +64,13 @@ Status key:
 | K30 | Mouse steering                                 | Done (opt-in)                                                                                           | done  |
 | K31 | Item and recovery shortcuts                    | Done (E, R, X, Y)                                                                                       | done  |
 | K32 | Loading, progress, retry                       | Done                                                                                                    | done  |
-| K33 | Ready check and 3-2-1-GO                       | Countdown done; ready check planned                                                                     | 4     |
+| K33 | Ready check and 3-2-1-GO                       | Done: everyone but the host ticks ready before the host can start; readiness clears each race           | done  |
 | K34 | Race HUD and results                           | Done; podium screen planned                                                                             | 5     |
 | K35 | Time-trial mode                                | Done: time trial (no CPUs) races your saved ghost with lap splits                                       | done  |
 | K36 | Best laps and records                          | Done: best race and best lap per track, laps and engine class; ghost saved on a new best                | done  |
 | K37 | Minimap and navigation                         | Done                                                                                                    | done  |
 | K38 | Multiplayer with visible opponents             | Done (rooms of 8, nearby karts)                                                                         | done  |
-| K39 | Spectator cameras                              | Planned: 3D follow and overview for spectators                                                          | 4     |
+| K39 | Spectator cameras                              | Done: late joiners and finished racers follow any kart in 3D, or watch an overview                      | done  |
 | K40 | Item boxes, turbo, shield, oil                 | Done                                                                                                    | done  |
 | K41 | Tennis-ball projectile                         | Built; switch on                                                                                        | 1     |
 | K42 | Bomb                                           | Built; switch on                                                                                        | 1     |
@@ -115,7 +115,7 @@ Status key:
   hit, wall bump, lap, final lap, countdown, finish and podium fanfare.
 - Separate music and effects volume, plus mute, remembered per browser.
 
-### Phase 4: online
+### Phase 4: online (done)
 
 - Ready check before the countdown.
 - Rejoin a running race after a refresh or a dropped connection.
@@ -125,6 +125,11 @@ Status key:
 - The host can kick a player, transfer host, and lock the room.
 - Room link QR code for phones.
 - An optional public quick-play list of open rooms.
+
+Also fixed in this phase: the room never sent a phone its own kart's rollback seed, so
+the phone could not time its finish and every human ended device-timed races as DNF.
+The seed and a rising race revision are now part of each racer's view, and a race
+loaded from storage skips past revisions phones may already have seen.
 
 ### Phase 5: presentation
 

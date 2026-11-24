@@ -157,3 +157,52 @@ it("measures the server clock from pongs and drops controls when backed up", () 
   expect(ws.sent).toHaveLength(before + 1);
   socket.close();
 });
+
+it("passes reactions on and sends them without waiting for an answer", () => {
+  const events: RoomEvent[] = [];
+  const socket = openRoomSocket(
+    "ABCD",
+    { name: "Ada" },
+    (e) => events.push(e),
+    options,
+  );
+  const ws = FakeSocket.instances[0]!;
+  ws.open();
+  socket.emote("fire");
+  expect(ws.sent.at(-1)).toEqual({ type: "emote", emote: "fire" });
+  ws.receive({ type: "emote", id: 4, playerId: "p-bbbbbbbbbb", emote: "wave" });
+  expect(events.at(-1)).toEqual({
+    kind: "emote",
+    emote: { id: 4, playerId: "p-bbbbbbbbbb", emote: "wave" },
+  });
+  socket.close();
+});
+
+it("stops for good and forgets the token when the host removes this racer", () => {
+  saveToken("ABCD", "a".repeat(40));
+  const events: RoomEvent[] = [];
+  openRoomSocket("ABCD", { name: "Ada" }, (e) => events.push(e), options);
+  const ws = FakeSocket.instances[0]!;
+  ws.open();
+  ws.receive({ type: "error", code: "kicked", message: "Removed." });
+  ws.drop(4003);
+  vi.advanceTimersByTime(20_000);
+  expect(FakeSocket.instances).toHaveLength(1);
+  expect(events).toContainEqual({
+    kind: "status",
+    status: "kicked",
+    message: "Removed.",
+  });
+  expect(sessionStorage.getItem("kart-party:token:ABCD")).toBeNull();
+});
+
+it("does not retry a locked room, even if only the close code arrives", () => {
+  const events: RoomEvent[] = [];
+  openRoomSocket("ABCD", { name: "Ada" }, (e) => events.push(e), options);
+  const ws = FakeSocket.instances[0]!;
+  ws.open();
+  ws.drop(4005);
+  vi.advanceTimersByTime(20_000);
+  expect(FakeSocket.instances).toHaveLength(1);
+  expect(events.at(-1)).toMatchObject({ kind: "status", status: "locked" });
+});

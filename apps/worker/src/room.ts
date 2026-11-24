@@ -12,6 +12,7 @@ import {
   kartCup,
   roomSettingsSchema,
   defaultRoomSettings,
+  emoteRateLimit,
   kartTickMs,
   maxClientMessageBytes,
   maxRoomPlayers,
@@ -21,8 +22,10 @@ import {
   type ClientMessage,
   type DriverStyle,
   type GrandPrixState,
+  type KartEmote,
   type KartPaint,
   type KartRace,
+  type PublicRoom,
   type RateBucket,
   type RateLimit,
   type RaceResult,
@@ -52,6 +55,10 @@ type Meta = {
   results?: RaceResult[];
   /** The Grand Prix in progress or just finished, when the room is in that mode. */
   grandPrix?: GrandPrixState;
+  /** Only racers already on the roster may come back in. Absent on older rooms. */
+  locked?: boolean;
+  /** Shown on the public quick-play list. */
+  listed?: boolean;
 };
 type StoredPlayer = {
   playerId: string;
@@ -62,6 +69,8 @@ type StoredPlayer = {
   paint?: KartPaint;
   wins: number;
   joinedAt: number;
+  /** Ready for the next race; cleared when a race starts. */
+  ready?: boolean;
 };
 type Attachment = { playerId?: string };
 
@@ -94,6 +103,9 @@ export class KartRoom extends DurableObject<Env> {
   private buckets = new Map<string, RateBucket>();
   private ticks = 0;
   private nextTickAt: number | null = null;
+  private emotes = 0;
+  /** The last summary sent to the public list, so an unchanged room stays quiet. */
+  private listing: string | undefined;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -129,7 +141,7 @@ export class KartRoom extends DurableObject<Env> {
       ]),
     );
     const race = kv.get<KartRace>("race");
-    this.session = race ? new RaceSession(race) : undefined;
+    this.session = race ? RaceSession.restore(race) : undefined;
   }
 
   private saveMeta() {
@@ -226,13 +238,20 @@ export class KartRoom extends DurableObject<Env> {
       return;
     }
     const { playerId } = this.attachment(ws);
-    const limit = message.type === "input" ? inputRateLimit : commandRateLimit;
-    const key = `${message.type === "input" ? "i" : "c"}:${playerId ?? "anon"}:${message.type === "hello" ? "hello" : ""}`;
+    const limit =
+      message.type === "input"
+        ? inputRateLimit
+        : message.type === "emote"
+          ? emoteRateLimit
+          : commandRateLimit;
+    const bucket =
+      message.type === "input" ? "i" : message.type === "emote" ? "e" : "c";
+    const key = `${bucket}:${playerId ?? "anon"}:${message.type === "hello" ? "hello" : ""}`;
     const taken = takeToken(this.buckets.get(key), limit, now);
     if (this.buckets.size > 200) this.buckets.clear();
     this.buckets.set(key, taken.bucket);
     if (!taken.allowed) {
-      if (message.type !== "input")
+      if (message.type !== "input" && message.type !== "emote")
         this.send(ws, {
           type: "error",
           code: "rate-limited",
@@ -281,6 +300,29 @@ export class KartRoom extends DurableObject<Env> {
         );
       case "start":
         return this.ack(ws, message.requestId, await this.start(playerId, now));
+      case "ready":
+        return this.ack(ws, message.requestId, this.setReady(playerId, message.ready));
+      case "access":
+        return this.ack(
+          ws,
+          message.requestId,
+          this.changeAccess(playerId, message.locked, message.listed, now),
+        );
+      case "kick":
+        return this.ack(
+          ws,
+          message.requestId,
+          this.kick(playerId, message.playerId, now),
+        );
+      case "host":
+        return this.ack(
+          ws,
+          message.requestId,
+          this.transferHost(playerId, message.playerId),
+        );
+      case "emote":
+        this.emote(playerId, message.emote);
+        return;
       case "lobby":
         return this.ack(ws, message.requestId, this.backToLobby(playerId));
       case "finish":
@@ -351,6 +393,7 @@ export class KartRoom extends DurableObject<Env> {
     if (idle && this.sockets().every((s) => s.ws === ws || !s.playerId))
       await this.ctx.storage.setAlarm(Date.now() + idleRoomMs);
     this.broadcastRoom();
+    this.syncListing(Date.now(), ws);
   }
 
   // ---- intents ----------------------------------------------------------
@@ -372,6 +415,15 @@ export class KartRoom extends DurableObject<Env> {
       if (message.driver) player.driver = message.driver;
       if (message.paint) player.paint = message.paint;
     } else {
+      if (meta.locked) {
+        this.send(ws, {
+          type: "error",
+          code: "locked",
+          message: "The host has locked this room.",
+        });
+        ws.close(4005, "Room locked");
+        return;
+      }
       if (this.players.size >= maxRoomPlayers) {
         // Make room by forgetting someone who left while the room was in the lobby.
         const connected = this.connectedIds();
@@ -403,12 +455,18 @@ export class KartRoom extends DurableObject<Env> {
     ws.serializeAttachment({ playerId: player.playerId } satisfies Attachment);
     this.send(ws, { type: "welcome", playerId: player.playerId, token: token! });
     this.broadcastRoom();
-    if (this.session && meta.phase !== "lobby")
+    if (this.session && meta.phase !== "lobby") {
+      // A racer coming back gets their own view; a late joiner watches.
+      const racing = this.session.race.drivers.some(
+        (driver) => driver.playerId === player.playerId,
+      );
       this.send(ws, {
         type: "race",
-        race: this.session.view(player.playerId),
+        race: this.session.view(racing ? player.playerId : null),
         serverNow: now,
       });
+    }
+    this.syncListing(now);
   }
 
   private requireHost(playerId: string): { ok: false; message: string } | undefined {
@@ -429,7 +487,81 @@ export class KartRoom extends DurableObject<Env> {
     meta.settings = settings;
     this.saveMeta();
     this.broadcastRoom();
+    this.syncListing(Date.now());
     return { ok: true as const };
+  }
+
+  private setReady(playerId: string, ready: boolean) {
+    const phase = this.meta!.phase;
+    if (phase !== "lobby" && phase !== "results")
+      return { ok: false as const, message: "Get ready between races." };
+    this.players.get(playerId)!.ready = ready;
+    this.savePlayers();
+    this.broadcastRoom();
+    return { ok: true as const };
+  }
+
+  private changeAccess(
+    playerId: string,
+    locked: boolean,
+    listed: boolean,
+    now: number,
+  ) {
+    const refusal = this.requireHost(playerId);
+    if (refusal) return refusal;
+    this.meta!.locked = locked;
+    this.meta!.listed = listed;
+    this.saveMeta();
+    this.broadcastRoom();
+    this.syncListing(now);
+    return { ok: true as const };
+  }
+
+  /**
+   * Takes a racer off the roster and closes their sockets. A kart already on
+   * the grid stays where it is with its controls released. They may join again
+   * as someone new unless the room is locked.
+   */
+  private kick(playerId: string, targetId: string, now: number) {
+    const refusal = this.requireHost(playerId);
+    if (refusal) return refusal;
+    if (targetId === playerId)
+      return { ok: false as const, message: "You cannot remove yourself." };
+    if (!this.players.delete(targetId))
+      return { ok: false as const, message: "That racer has already left." };
+    this.session?.forget(targetId);
+    this.savePlayers();
+    for (const { ws, playerId: id } of this.sockets()) {
+      if (id !== targetId) continue;
+      ws.serializeAttachment({} satisfies Attachment);
+      this.send(ws, {
+        type: "error",
+        code: "kicked",
+        message: "The host removed you from this room.",
+      });
+      ws.close(4003, "Removed by the host");
+    }
+    this.broadcastRoom();
+    this.syncListing(now);
+    return { ok: true as const };
+  }
+
+  private transferHost(playerId: string, targetId: string) {
+    const refusal = this.requireHost(playerId);
+    if (refusal) return refusal;
+    if (!this.players.has(targetId) || !this.connectedIds().has(targetId))
+      return { ok: false as const, message: "That racer is not here right now." };
+    this.meta!.hostId = targetId;
+    this.saveMeta();
+    this.broadcastRoom();
+    return { ok: true as const };
+  }
+
+  /** Reactions are passed straight on and never stored. */
+  private emote(playerId: string, emote: KartEmote) {
+    const id = this.emotes++;
+    for (const socket of this.sockets())
+      if (socket.playerId) this.send(socket.ws, { type: "emote", id, playerId, emote });
   }
 
   private changeDriver(playerId: string, style: DriverStyle, paint?: KartPaint) {
@@ -451,6 +583,16 @@ export class KartRoom extends DurableObject<Env> {
     const racers = [...this.players.values()].filter((p) => connected.has(p.playerId));
     if (racers.length === 0)
       return { ok: false as const, message: "Nobody is here to race." };
+    const waiting = racers.filter((p) => p.playerId !== playerId && !p.ready).length;
+    if (waiting > 0)
+      return {
+        ok: false as const,
+        message:
+          waiting === 1
+            ? "Waiting for 1 racer to get ready."
+            : `Waiting for ${waiting} racers to get ready.`,
+      };
+    for (const player of this.players.values()) player.ready = false;
     meta.raceCount += 1;
     meta.raceId = `${meta.code}-${meta.raceCount}-${randomId(4)}`;
     meta.goAt = now + countdownMs;
@@ -479,10 +621,12 @@ export class KartRoom extends DurableObject<Env> {
     this.ticks = 0;
     this.saveRace();
     this.saveMeta();
+    this.savePlayers();
     this.nextTickAt = meta.goAt;
     await this.ctx.storage.setAlarm(meta.goAt);
     this.broadcastRoom();
     this.broadcastRace(now);
+    this.syncListing(now);
     return { ok: true as const };
   }
 
@@ -497,6 +641,7 @@ export class KartRoom extends DurableObject<Env> {
     this.saveRace();
     this.saveMeta();
     this.broadcastRoom();
+    this.syncListing(Date.now());
     return { ok: true as const };
   }
 
@@ -530,6 +675,7 @@ export class KartRoom extends DurableObject<Env> {
       meta.phase = "racing";
       this.saveMeta();
       this.broadcastRoom();
+      this.syncListing(now);
     }
     if (meta.phase === "racing" && this.session && meta.goAt !== undefined) {
       const race = this.session.tick(now - meta.goAt);
@@ -553,6 +699,10 @@ export class KartRoom extends DurableObject<Env> {
     this.nextTickAt = null;
     const anyone = this.sockets().some((s) => s.playerId);
     if (!anyone && now - meta.lastActiveAt >= idleRoomMs) {
+      if (meta.listed)
+        await this.directory()
+          .remove(meta.code, now)
+          .catch(() => {});
       await this.ctx.storage.deleteAll();
       this.meta = undefined;
       this.players.clear();
@@ -582,7 +732,64 @@ export class KartRoom extends DurableObject<Env> {
     this.saveMeta();
     this.broadcastRace(now);
     this.broadcastRoom();
+    this.syncListing(now);
     void this.ctx.storage.setAlarm(now + idleRoomMs);
+  }
+
+  // ---- public list ----------------------------------------------------------
+
+  private directory() {
+    const namespace = this.env.ROOM_DIRECTORY;
+    return namespace.get(namespace.idFromName("public"));
+  }
+
+  /**
+   * Tells the public list about this room when something it shows changes.
+   * It runs after the room's own state is saved and never delays a reply: the
+   * list is a convenience, not part of the race. `leaving` is a socket that is
+   * closing and must not be counted.
+   */
+  private syncListing(now: number, leaving?: WebSocket) {
+    const meta = this.meta;
+    if (!meta) return;
+    const here = new Set(
+      this.sockets().flatMap((s) =>
+        s.playerId && s.ws !== leaving ? [s.playerId] : [],
+      ),
+    );
+    const open =
+      meta.listed &&
+      !meta.locked &&
+      here.size > 0 &&
+      this.players.size < maxRoomPlayers;
+    const summary: PublicRoom | undefined = open
+      ? {
+          code: meta.code,
+          players: here.size,
+          phase: meta.phase,
+          mode: meta.settings.mode,
+          trackId: meta.settings.trackId,
+          cupId: meta.settings.cupId,
+          updatedAt: now,
+        }
+      : undefined;
+    const key = summary ? JSON.stringify({ ...summary, updatedAt: 0 }) : "";
+    // After a restart `listing` is unknown, so the first change always reports.
+    if (this.listing !== undefined && key === this.listing) return;
+    const was = this.listing;
+    this.listing = key;
+    const call = summary
+      ? this.directory().upsert(summary)
+      : was === "" || (was === undefined && !meta.listed)
+        ? undefined
+        : this.directory().remove(meta.code, now);
+    if (call)
+      this.ctx.waitUntil(
+        call.catch(() => {
+          // Report again on the next change.
+          this.listing = undefined;
+        }),
+      );
   }
 
   // ---- views ---------------------------------------------------------------
@@ -596,6 +803,8 @@ export class KartRoom extends DurableObject<Env> {
       settings: meta.settings,
       hostId: meta.hostId,
       selfId,
+      locked: Boolean(meta.locked),
+      listed: Boolean(meta.listed),
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
         .map((p) => ({
@@ -603,6 +812,7 @@ export class KartRoom extends DurableObject<Env> {
           name: p.name,
           driver: { style: p.driver, ...(p.paint ? { paint: p.paint } : {}) },
           connected: connected.has(p.playerId),
+          ready: Boolean(p.ready),
           wins: p.wins,
         })),
       ...(meta.goAt !== undefined && meta.phase !== "lobby" ? { goAt: meta.goAt } : {}),

@@ -1234,6 +1234,9 @@ export function projectKartRace(
 ): KartRaceView {
   const originalFinish = kartFinishPresentation(race);
   const recap = race.ended ? kartRaceRecap(race) : undefined;
+  const selfDriver = selfPlayerId
+    ? race.drivers.find((d) => d.playerId === selfPlayerId && !d.cpu)
+    : undefined;
   const finish =
     originalFinish?.version === 1 && recap
       ? { ...originalFinish, recap }
@@ -1270,6 +1273,28 @@ export function projectKartRace(
     elapsedMs: race.elapsedMs,
     ended: race.ended,
     selfPlayerId,
+    // In a device-timed race this racer's phone drives from the room's exact
+    // body and lap state, and times its own finish from it.
+    ...(race.timingMode === "device-v1" && selfDriver
+      ? {
+          rollback: {
+            revision: race.checkpointRevision ?? 0,
+            appliedSequence: selfDriver.sequence,
+            recovery: selfDriver.lap?.recoveries ?? 0,
+            body:
+              selfDriver.physics ??
+              createDrivingBody(selfDriver.x, selfDriver.z, selfDriver.heading),
+            lap: {
+              angle: selfDriver.angle,
+              distance: selfDriver.distance,
+              checkpoint: selfDriver.checkpoint,
+              done: selfDriver.lapsDone ?? 0,
+              splits: selfDriver.lapTimes ?? [],
+            },
+            input: selfDriver.input,
+          },
+        }
+      : {}),
     participantCount: race.drivers.length,
     inputCursor: selfPlayerId
       ? Math.max(

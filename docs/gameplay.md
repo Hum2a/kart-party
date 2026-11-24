@@ -144,3 +144,14 @@ Top speed is where power meets drag, so scaling power by the cube moves top spee
 - A ghost is one `[x, z, heading]` sample per `100 ms` race tick (rounded to centimetres, up to `6,000` samples), replayed by interpolation. It never touches the race.
 - Time trials (practice with `0` CPU racers) record a ghost and save it only when the run beats the stored best for that track, lap count and engine class.
 - Records keep the best race time and best single lap separately, per track, lap count and engine class, in this browser's local storage.
+
+## 7. Online Rooms (`apps/worker/src/room.ts`)
+
+| Feature         | Rule                                                                                                                                                                             |
+| :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ready check** | Every connected racer except the host ticks ready before the host can start. A racer who has gone does not hold the race up. Readiness clears at each start.                     |
+| **Rejoin**      | The room-scoped token lives in the tab's session storage. A refresh says hello with it and the racer is back in their own kart; the phone resumes from the room's rollback seed. |
+| **Watching**    | Someone who joins mid-race, or has already finished, follows any kart in 3D or watches an overview. They race in the next one.                                                   |
+| **Reactions**   | Eight emotes, passed to everyone and never stored. Four in a burst, then one every two seconds. Racers at the wheel see them but get no buttons.                                 |
+| **Host tools**  | Remove a racer (after confirming), hand over the host to someone connected, lock the room to its roster, and list it on quick play.                                              |
+| **Quick play**  | A single `RoomDirectory` Durable Object keeps listed rooms. Rooms report only when their roster, phase or access changes, and drop off after 20 minutes of silence.              |

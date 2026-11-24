@@ -210,6 +210,8 @@ describe("KartRoom", () => {
       },
     });
     await ada.client.next("ack", (m) => m.requestId === "set");
+    bo.client.send({ type: "ready", requestId: "bo-ready", ready: true });
+    await bo.client.next("ack", (m) => m.requestId === "bo-ready");
     ada.client.send({ type: "start", requestId: "go" });
     expect(await ada.client.next("ack", (m) => m.requestId === "go")).toMatchObject({
       ok: true,
@@ -421,5 +423,209 @@ describe("Grand Prix rooms", () => {
       (m) => m.room.phase === "countdown" && m.room.grandPrix?.round === 0,
     );
     expect(fresh.room.grandPrix!.table).toEqual([]);
+  });
+});
+
+const raceSettings = {
+  trackId: "party-ring-v1",
+  laps: 1,
+  cpu: 0,
+  cpuLevel: "normal",
+  items: "off",
+  speedClass: "100",
+  mode: "race",
+  cupId: "starter-cup",
+} as const;
+
+async function goRacing(code: string, host: Client) {
+  host.send({ type: "settings", requestId: "race-set", settings: raceSettings });
+  await host.next("ack", (m) => m.requestId === "race-set");
+  host.send({ type: "start", requestId: "race-go" });
+  expect(await host.next("ack", (m) => m.requestId === "race-go")).toMatchObject({
+    ok: true,
+  });
+  const stub = roomStub(code);
+  await runInDurableObject(stub, (instance: KartRoom) => {
+    (instance as unknown as { meta: { goAt: number } }).meta.goAt = Date.now() - 1_000;
+  });
+  await runDurableObjectAlarm(stub);
+  await host.next("room", (m) => m.room.phase === "racing");
+}
+
+async function publicCodes(): Promise<string[]> {
+  const response = await SELF.fetch("https://kart.test/api/rooms/public");
+  expect(response.status).toBe(200);
+  const body = (await response.json()) as { rooms: { code: string }[] };
+  return body.rooms.map((room) => room.code);
+}
+
+/** The list is updated after the room replies, so give it a moment. */
+async function eventually(check: () => Promise<boolean>) {
+  for (let i = 0; i < 40; i++) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("The public list never caught up.");
+}
+
+describe("online polish", () => {
+  it("waits for every racer to be ready, then clears readiness for the next race", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    const bo = await join(code, "Bo");
+    const cy = await join(code, "Cy");
+    ada.client.send({ type: "start", requestId: "early" });
+    expect(await ada.client.next("ack", (m) => m.requestId === "early")).toMatchObject({
+      ok: false,
+      message: "Waiting for 2 racers to get ready.",
+    });
+    bo.client.send({ type: "ready", requestId: "b", ready: true });
+    await bo.client.next("ack", (m) => m.requestId === "b");
+    const seen = await ada.client.next("room", (m) =>
+      m.room.players.some((p) => p.name === "Bo" && p.ready),
+    );
+    expect(seen.room.players.find((p) => p.name === "Cy")?.ready).toBe(false);
+    // A racer who has gone does not hold the race up.
+    cy.client.ws.close();
+    await ada.client.next("room", (m) =>
+      m.room.players.some((p) => p.name === "Cy" && !p.connected),
+    );
+    ada.client.send({ type: "start", requestId: "go" });
+    expect(await ada.client.next("ack", (m) => m.requestId === "go")).toMatchObject({
+      ok: true,
+    });
+    const countdown = [...ada.client.messages]
+      .reverse()
+      .find(
+        (m): m is Extract<ServerMessage, { type: "room" }> =>
+          m.type === "room" && m.room.phase === "countdown",
+      )!;
+    expect(countdown.room.players.every((p) => !p.ready)).toBe(true);
+    bo.client.send({ type: "ready", requestId: "mid", ready: true });
+    expect(await bo.client.next("ack", (m) => m.requestId === "mid")).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it("puts a returning racer back in their kart and lets a late joiner watch", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    const bo = await join(code, "Bo");
+    bo.client.send({ type: "ready", requestId: "r", ready: true });
+    await bo.client.next("ack", (m) => m.requestId === "r");
+    await goRacing(code, ada.client);
+    bo.client.ws.close();
+    await ada.client.next("room", (m) =>
+      m.room.players.some((p) => p.name === "Bo" && !p.connected),
+    );
+    const back = await join(code, "Bo", bo.welcome.token);
+    expect(back.welcome.playerId).toBe(bo.welcome.playerId);
+    expect(back.room.phase).toBe("racing");
+    const view = await back.client.next("race");
+    expect(view.race.selfPlayerId).toBe(bo.welcome.playerId);
+    expect(view.race.rollback).toBeTruthy();
+
+    const late = await join(code, "Cy");
+    const watching = await late.client.next("race");
+    expect(watching.race.selfPlayerId).toBeNull();
+    expect(watching.race.participants.map((p) => p.name).sort()).toEqual(["Ada", "Bo"]);
+  });
+
+  it("lets only the host remove racers, pass the host on and lock the room", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    const bo = await join(code, "Bo");
+    const cy = await join(code, "Cy");
+    bo.client.send({ type: "kick", requestId: "k0", playerId: cy.welcome.playerId });
+    expect(await bo.client.next("ack", (m) => m.requestId === "k0")).toMatchObject({
+      ok: false,
+    });
+    ada.client.send({ type: "kick", requestId: "k1", playerId: ada.welcome.playerId });
+    expect(await ada.client.next("ack", (m) => m.requestId === "k1")).toMatchObject({
+      ok: false,
+    });
+
+    const closed = new Promise<number>((resolve) =>
+      cy.client.ws.addEventListener("close", (event) => resolve(event.code)),
+    );
+    ada.client.send({ type: "kick", requestId: "k2", playerId: cy.welcome.playerId });
+    expect(await ada.client.next("ack", (m) => m.requestId === "k2")).toMatchObject({
+      ok: true,
+    });
+    expect(await cy.client.next("error")).toMatchObject({ code: "kicked" });
+    expect(await closed).toBe(4003);
+    const roster = await bo.client.next("room", (m) => m.room.players.length === 2);
+    expect(roster.room.players.map((p) => p.name)).toEqual(["Ada", "Bo"]);
+
+    ada.client.send({ type: "host", requestId: "h1", playerId: bo.welcome.playerId });
+    expect(await ada.client.next("ack", (m) => m.requestId === "h1")).toMatchObject({
+      ok: true,
+    });
+    // The room broadcasts the new host before it acknowledges.
+    expect(
+      ada.client.messages.some(
+        (m) => m.type === "room" && m.room.hostId === bo.welcome.playerId,
+      ),
+    ).toBe(true);
+    ada.client.send({ type: "access", requestId: "a0", locked: true, listed: false });
+    expect(await ada.client.next("ack", (m) => m.requestId === "a0")).toMatchObject({
+      ok: false,
+    });
+
+    bo.client.send({ type: "access", requestId: "a1", locked: true, listed: false });
+    expect(await bo.client.next("ack", (m) => m.requestId === "a1")).toMatchObject({
+      ok: true,
+    });
+    await ada.client.next("room", (m) => m.room.locked);
+    const stranger = await connect(code);
+    stranger.send({ type: "hello", name: "Dee" });
+    expect(await stranger.next("error")).toMatchObject({ code: "locked" });
+    // Someone already on the roster can still come back.
+    ada.client.ws.close();
+    const back = await join(code, "Ada", ada.welcome.token);
+    expect(back.welcome.playerId).toBe(ada.welcome.playerId);
+  });
+
+  it("passes emotes to everyone in the room and limits bursts", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    const bo = await join(code, "Bo");
+    ada.client.send({ type: "emote", emote: "wave" });
+    const got = await bo.client.next("emote");
+    expect(got).toMatchObject({ playerId: ada.welcome.playerId, emote: "wave" });
+    for (let i = 0; i < 6; i++) ada.client.send({ type: "emote", emote: "fire" });
+    ada.client.send({ type: "ping", t: 1 });
+    await ada.client.next("pong");
+    const fires = ada.client.messages.filter(
+      (m) => m.type === "emote" && m.emote === "fire",
+    );
+    // A burst of four, and the wave already used one.
+    expect(fires.length).toBe(3);
+    ada.client.send({ type: "emote", emote: "banana" });
+    expect(await ada.client.next("error")).toMatchObject({ code: "bad-request" });
+  });
+
+  it("lists a public room while it is open and drops it when locked", async () => {
+    const code = await createRoom();
+    const ada = await join(code, "Ada");
+    expect(await publicCodes()).not.toContain(code);
+    ada.client.send({ type: "access", requestId: "list", locked: false, listed: true });
+    await ada.client.next("ack", (m) => m.requestId === "list");
+    await eventually(async () => (await publicCodes()).includes(code));
+    const response = await SELF.fetch("https://kart.test/api/rooms/public");
+    const { rooms } = (await response.json()) as { rooms: Record<string, unknown>[] };
+    const entry = rooms.find((room) => room.code === code)!;
+    expect(entry).toMatchObject({ players: 1, phase: "lobby", mode: "race" });
+    expect(JSON.stringify(entry)).not.toContain("Ada");
+
+    ada.client.send({ type: "access", requestId: "lock", locked: true, listed: true });
+    await ada.client.next("ack", (m) => m.requestId === "lock");
+    await eventually(async () => !(await publicCodes()).includes(code));
+
+    ada.client.send({ type: "access", requestId: "open", locked: false, listed: true });
+    await ada.client.next("ack", (m) => m.requestId === "open");
+    await eventually(async () => (await publicCodes()).includes(code));
+    ada.client.ws.close();
+    await eventually(async () => !(await publicCodes()).includes(code));
   });
 });

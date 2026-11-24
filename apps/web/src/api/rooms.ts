@@ -1,4 +1,8 @@
-import { roomCodeSchema } from "@kart-party/game";
+import {
+  publicRoomListSchema,
+  roomCodeSchema,
+  type PublicRoom,
+} from "@kart-party/game";
 
 export async function createRoom(
   fetcher: typeof fetch = fetch,
@@ -24,5 +28,19 @@ export async function roomExists(code: string, fetcher: typeof fetch = fetch) {
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+/** Open public rooms, newest lobbies first. An empty list when offline. */
+export async function listPublicRooms(
+  fetcher: typeof fetch = fetch,
+): Promise<{ ok: true; rooms: PublicRoom[] } | { ok: false }> {
+  try {
+    const response = await fetcher("/api/rooms/public");
+    if (!response.ok) return { ok: false };
+    const body = publicRoomListSchema.safeParse(await response.json());
+    return body.success ? { ok: true, rooms: body.data.rooms } : { ok: false };
+  } catch {
+    return { ok: false };
   }
 }

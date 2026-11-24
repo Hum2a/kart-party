@@ -6,6 +6,7 @@ import { saveName, savedName } from "../live/identity";
 import { createRoom, roomExists } from "../api/rooms";
 import { useMusic } from "../audio/use-music";
 import { SoundButton } from "../audio/SoundSettings";
+import { QuickPlay } from "./QuickPlay";
 
 export function PlayPage() {
   useMusic("menu");
@@ -102,6 +103,11 @@ export function PlayPage() {
           {busy === "join" ? "Checking…" : "Join room"}
         </Button>
       </form>
+      <QuickPlay
+        onJoin={(room) => {
+          if (checkName()) navigate(`/r/${room}`);
+        }}
+      />
     </main>
   );
 }

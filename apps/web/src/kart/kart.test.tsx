@@ -713,7 +713,9 @@ it("lays out each kart state for landscape and keeps race notices visible over t
   const prompt = screen.getByRole("button", { name: "🔊 Tap to turn sound on" });
   act(() => prompt.click());
   await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "🔊 Tap to turn sound on" })).toBeNull(),
+    expect(
+      screen.queryByRole("button", { name: "🔊 Tap to turn sound on" }),
+    ).toBeNull(),
   );
   expect(notice()?.parentElement).toBe(phone());
   expect(notice()?.tagName).not.toBe("P");
@@ -740,6 +742,8 @@ it("lays out each kart state for landscape and keeps race notices visible over t
   view.rerender(<GuestKart snapshot={{ ...base, phase: "collect" }} />);
   expect(phone().getAttribute("data-layout")).toBe("finish");
   expect(notice()).toBeNull();
+  // While others are still racing, a finished racer can watch them.
+  expect(screen.getByRole("region", { name: "Watching the race" })).toBeTruthy();
   // Watching a race this phone is not in.
   const watching = projectKartRace(state, null, 100);
   view.rerender(
@@ -754,6 +758,12 @@ it("lays out each kart state for landscape and keeps race notices visible over t
     />,
   );
   expect(phone().getAttribute("data-layout")).toBe("watch");
+  // A watcher follows the race in 3D and gets no driving controls.
+  expect(screen.getByRole("region", { name: "Watching the race" })).toBeTruthy();
+  expect(document.querySelector(".kart-controller-shell")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Accelerate" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+  expect(await screen.findByText("Watching the whole track")).toBeTruthy();
   // No race at all: the ordinary layout.
   view.rerender(
     <GuestKart

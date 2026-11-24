@@ -17,10 +17,16 @@
     "run_worker_first": ["/api", "/api/*"],
   },
   "durable_objects": {
-    "bindings": [{ "name": "KART_ROOM", "class_name": "KartRoom" }],
+    "bindings": [
+      { "name": "KART_ROOM", "class_name": "KartRoom" },
+      { "name": "ROOM_DIRECTORY", "class_name": "RoomDirectory" },
+    ],
   },
-  // Add a later tag only for a new class. Do not delete or recreate this class.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KartRoom"] }],
+  // Add a later tag only for a new class. Do not delete or recreate a class.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["KartRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["RoomDirectory"] },
+  ],
   "env": {
     "production": {
       "name": "kart-party",
@@ -29,7 +35,10 @@
       "routes": [{ "pattern": "kart.humza.website", "custom_domain": true }],
       "vars": { "APP_ENV": "production" },
       "durable_objects": {
-        "bindings": [{ "name": "KART_ROOM", "class_name": "KartRoom" }],
+        "bindings": [
+          { "name": "KART_ROOM", "class_name": "KartRoom" },
+          { "name": "ROOM_DIRECTORY", "class_name": "RoomDirectory" },
+        ],
       },
     },
   },

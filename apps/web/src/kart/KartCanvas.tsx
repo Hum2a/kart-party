@@ -332,6 +332,7 @@ export default function KartCanvas({
           ? predictSelf(predictor.current, live.current, now)
           : undefined;
       circuit.setPredicted(predicted ? following.current : undefined);
+      circuit.setWatched(spectator ? following.current : undefined);
       const displayRace = rehearsal
         ? vfxRehearsalRace(live.current, rehearsal.script, sampleTime, rehearsal.run)
         : (predicted ?? live.current);

@@ -8,6 +8,7 @@ import type {
 } from "@kart-party/game";
 import type { RaceStage } from "./race-stage";
 import { KartDriverView } from "./KartDriverView";
+import { KartSpectatorView } from "./KartSpectatorView";
 import { TouchController } from "./TouchController";
 import { useKartSocket } from "./useKartSocket";
 import { PowerUpControl } from "./PowerUpControl";
@@ -296,7 +297,9 @@ export function RaceScreen({
                 : "Time’s up"
             : self
               ? `Kart ${self.number}`
-              : "Start your engines"}
+              : race
+                ? "Watching the race"
+                : "Start your engines"}
         </h1>
       </header>
       {self?.gridPosition && stage.phase !== "racing" ? (
@@ -394,7 +397,17 @@ export function RaceScreen({
           }
         />
       ) : null}
-      {!complete ? (
+      {race && (!self || (complete && !race.ended)) ? (
+        <KartSpectatorView
+          key={`watch-${race.raceId}`}
+          race={race}
+          initial={
+            race.leaderboard.find((row) => !row.finished)?.playerId ??
+            race.leaderboard[0]?.playerId
+          }
+        />
+      ) : null}
+      {!complete && (self || rehearsal) ? (
         <TouchController
           key={race?.raceId ?? "kart-rehearsal"}
           disabled={
@@ -415,7 +428,7 @@ export function RaceScreen({
             </>
           }
         />
-      ) : (
+      ) : complete ? (
         <motion.div
           className="kart-finish-card"
           initial={{ opacity: 0, y: reduced ? 0 : 18, scale: reduced ? 1 : 0.96 }}
@@ -459,7 +472,7 @@ export function RaceScreen({
           </p>
           {footer}
         </motion.div>
-      )}
+      ) : null}
       {race?.ended && self ? (
         <KartRecapPanel
           timingMode={race.timingMode}
@@ -468,7 +481,7 @@ export function RaceScreen({
           names={{ [self.playerId]: self.name }}
         />
       ) : null}
-      {!complete ? (
+      {self && !complete ? (
         <div className="kart-action-rail">
           {race?.powers && self && onUseItem ? (
             <PowerUpControl
@@ -508,7 +521,7 @@ export function RaceScreen({
           </div>
         </div>
       ) : null}
-      {!complete ? (
+      {self && !complete ? (
         <p className="kart-help">
           Slide the steering zone to turn. Accelerate, Brake and Drift are separate
           buttons. A slider is there if you prefer it.

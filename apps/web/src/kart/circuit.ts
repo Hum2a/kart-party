@@ -392,6 +392,8 @@ export function createCircuit(
     effectRaceId: string | undefined;
   const poses = new Map<string, KartPose>();
   let predictedPlayerId: string | undefined;
+  /** A spectator's followed kart: chase-style tags, sized from it. */
+  let watchedPlayerId: string | undefined;
   let glideEnabled = true;
   /** Last two server poses for each other racer, on the effect clock. */
   const serverSpan = new Map<string, { from: ServerSample; to: ServerSample }>();
@@ -556,7 +558,10 @@ export function createCircuit(
     rig.begin(dt);
     const tagged = new Set<THREE.Sprite>();
     // The followed kart comes first in chase view; its pose sizes nearby tags.
-    let focusX: number | undefined, focusZ: number | undefined;
+    const tagFrom = watchedPlayerId ?? focusPlayerId;
+    // Last frame's pose until the loop reaches the followed kart this frame.
+    let focusX = tagFrom ? poses.get(tagFrom)?.x : undefined,
+      focusZ = tagFrom ? poses.get(tagFrom)?.z : undefined;
     for (let i = 0; i < drivers.length; i++) {
       const driver = drivers[i]!,
         previous = poses.get(driver.playerId),
@@ -583,7 +588,7 @@ export function createCircuit(
       const { x, z, heading } = pose,
         c = Math.cos(heading),
         s = Math.sin(heading);
-      if (driver.playerId === focusPlayerId) {
+      if (driver.playerId === tagFrom) {
         focusX = x;
         focusZ = z;
       }
@@ -684,11 +689,10 @@ export function createCircuit(
         }
       }
       // Everyone but you gets a tag: a name in chase view, a number on the map.
-      const sprite =
-        driver.playerId === focusPlayerId ? undefined : label(driver, !!focusPlayerId);
+      const sprite = driver.playerId === tagFrom ? undefined : label(driver, !!tagFrom);
       if (sprite) {
         sprite.position.set(x, 3.8 + height, z);
-        if (focusPlayerId) {
+        if (tagFrom) {
           // A kart right beside the camera would get a screen-filling tag;
           // shrink close tags so none grows past its size at a car length or so.
           const gap =
@@ -910,6 +914,10 @@ export function createCircuit(
     /** Host switch for carrying other karts forward between room frames. */
     setGlide(enabled: boolean) {
       glideEnabled = enabled;
+    },
+    /** The kart a spectator follows, or none for the overview. */
+    setWatched(playerId: string | undefined) {
+      watchedPlayerId = playerId;
     },
     /** The kart drawn from local prediction, which skips pose smoothing. */
     setPredicted(playerId: string | undefined) {

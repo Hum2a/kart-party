@@ -3,6 +3,7 @@ import { roomCodeAlphabet, roomCodeSchema } from "@kart-party/game";
 import type { KartRoom } from "./room.ts";
 
 export { KartRoom } from "./room.ts";
+export { RoomDirectory } from "./directory.ts";
 
 type Bindings = Env;
 const app = new Hono<{ Bindings: Bindings }>();
@@ -28,6 +29,13 @@ app.post("/api/rooms", async (c) => {
     { error: "busy", message: "Could not find a free room code. Try again." },
     503,
   );
+});
+
+/** Open public rooms for quick play. Room codes and counts only, never names. */
+app.get("/api/rooms/public", async (c) => {
+  const directory = c.env.ROOM_DIRECTORY.get(c.env.ROOM_DIRECTORY.idFromName("public"));
+  const rooms = await directory.list(Date.now());
+  return c.json({ rooms }, 200, { "Cache-Control": "no-store" });
 });
 
 app.get("/api/rooms/:code", async (c) => {

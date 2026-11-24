@@ -24,6 +24,8 @@ import type { RaceResult } from "./protocol.ts";
 
 /** After the first racer crosses the line, everyone else has this long to finish. */
 export const finishGraceMs = 30_000;
+/** How far a restored race jumps its revision; above the ticks between saves. */
+const restoreRevisionGap = 16;
 
 export const raceItemModes = ["off", "classic", "all"] as const;
 export type RaceItemMode = (typeof raceItemModes)[number];
@@ -71,6 +73,28 @@ export class RaceSession {
 
   constructor(race: KartRace) {
     this.race = race;
+  }
+
+  /**
+   * A race loaded from storage. Ticks after the last save may already have
+   * sent phones higher revisions, so skip past them: a phone ignores a race
+   * seed whose revision it has already seen.
+   */
+  static restore(race: KartRace): RaceSession {
+    if (!race.ended)
+      race = {
+        ...race,
+        checkpointRevision: (race.checkpointRevision ?? 0) + restoreRevisionGap,
+      };
+    return new RaceSession(race);
+  }
+
+  /** Every change to the race is a new revision, so phones can tell fresh seeds from stale ones. */
+  private commit(next: KartRace) {
+    const revision = (this.race.checkpointRevision ?? 0) + 1;
+    next.checkpointRevision = revision;
+    this.race = next;
+    return next;
   }
 
   static create(setup: RaceSetup): RaceSession {
@@ -152,7 +176,7 @@ export class RaceSession {
       next.elapsedMs >= first + finishGraceMs
     )
       next = reduceKart(next, { type: "end" });
-    this.race = next;
+    this.commit(next);
     return next;
   }
 
@@ -170,7 +194,7 @@ export class RaceSession {
     });
     if (next === this.race)
       return { ok: false, message: "That finish cannot be accepted in this race." };
-    this.race = next;
+    this.commit(next);
     this.queues.delete(playerId);
     return { ok: true };
   }
@@ -184,7 +208,7 @@ export class RaceSession {
     const next = reduceKart(this.race, { type: "use-power", playerId });
     if (next === this.race)
       return { ok: false, message: "Drive through an item box first." };
-    this.race = next;
+    this.commit(next);
     return { ok: true };
   }
 
@@ -195,7 +219,7 @@ export class RaceSession {
     const next = reduceKart(this.race, { type: "recover", playerId });
     if (next === this.race)
       return { ok: false, message: "Wait two seconds before recovering again." };
-    this.race = next;
+    this.commit(next);
     const queue = this.queues.get(playerId);
     if (queue) queue.pending = [];
     return { ok: true };
@@ -203,7 +227,7 @@ export class RaceSession {
 
   /** Freeze every kart, for example when the race is abandoned. */
   end(): KartRace {
-    this.race = reduceKart(this.race, { type: "end" });
+    this.commit(reduceKart(this.race, { type: "end" }));
     this.queues.clear();
     return this.race;
   }

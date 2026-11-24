@@ -6,6 +6,7 @@ import {
   kartTrackName,
   nicknameSchema,
   roomCodeSchema,
+  type KartEmote,
   type LobbyDriver,
   type RoomSettings,
   type RoomView,
@@ -16,8 +17,9 @@ import { RaceOptions } from "../race/RaceOptions";
 import { CupPicker, DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
-import { DriverBadge } from "../kart/DriverBadge";
 import type { RaceStage } from "../kart/race-stage";
+import { AccessControls, InvitePanel, PlayerRow } from "./lobby-parts";
+import { EmoteBar, EmoteFeed } from "./emotes";
 import { serverOffset } from "../live/server-clock";
 import {
   saveDriver,
@@ -121,6 +123,13 @@ function Room({ code, identity }: { code: string; identity: Identity }) {
       ),
     [view?.players],
   );
+  const names = useMemo(
+    () =>
+      new Map<string, string>(
+        (view?.players ?? []).map((player) => [player.playerId, player.name]),
+      ),
+    [view?.players],
+  );
   const actions = useMemo<RaceActions>(
     () => ({
       input: (input) => room.api.sendInput(input),
@@ -147,6 +156,18 @@ function Room({ code, identity }: { code: string; identity: Identity }) {
     return (
       <Notice title="This room has closed">Create a new room to race again.</Notice>
     );
+  if (room.status === "kicked")
+    return (
+      <Notice title="You left the room">
+        The host removed you from this room. You can create a room of your own.
+      </Notice>
+    );
+  if (room.status === "locked")
+    return (
+      <Notice title="This room is locked">
+        The host is not letting new racers in right now. Ask them to unlock it.
+      </Notice>
+    );
   if (!view)
     return (
       <main className="grid min-h-dvh place-items-center px-4">
@@ -160,9 +181,16 @@ function Room({ code, identity }: { code: string; identity: Identity }) {
 
   const connected = room.status === "open";
   const racing = view.phase === "countdown" || view.phase === "racing";
+  // Racers at the wheel keep both hands on the controls; everyone else can react.
+  const driving = Boolean(
+    room.race?.participants.some(
+      (p) => p.playerId === view.selfId && p.status === "RACING",
+    ),
+  );
   return (
     <>
       <ConnectionBanner status={room.status} />
+      <EmoteFeed emotes={room.emotes} names={names} selfId={view.selfId} />
       <AnimatePresence mode="wait" initial={false}>
         {racing && stage ? (
           <motion.div
@@ -180,6 +208,11 @@ function Room({ code, identity }: { code: string; identity: Identity }) {
               drivers={drivers}
               footer={<p className="text-muted">Waiting for everyone to finish…</p>}
             />
+            {!driving ? (
+              <div className="mx-auto max-w-4xl px-4 pb-10">
+                <EmoteBar onSend={room.api.emote} disabled={!connected} />
+              </div>
+            ) : null}
           </motion.div>
         ) : (
           <motion.div
@@ -189,7 +222,12 @@ function Room({ code, identity }: { code: string; identity: Identity }) {
             exit={{ opacity: 0 }}
             transition={{ duration: reduced ? 0.12 : 0.25 }}
           >
-            <Lobby view={view} request={room.api.request} />
+            <Lobby
+              view={view}
+              request={room.api.request}
+              onEmote={room.api.emote}
+              connected={connected}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -218,13 +256,26 @@ function ConnectionBanner({ status }: { status: string }) {
 
 type Request = ReturnType<typeof useRoom>["api"]["request"];
 
-function Lobby({ view, request }: { view: RoomView; request: Request }) {
+function Lobby({
+  view,
+  request,
+  onEmote,
+  connected,
+}: {
+  view: RoomView;
+  request: Request;
+  onEmote: (emote: KartEmote) => void;
+  connected: boolean;
+}) {
   const host = view.hostId === view.selfId;
   const self = view.players.find((player) => player.playerId === view.selfId);
   const [notice, setNotice] = useState("");
   const [starting, setStarting] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const link = `${location.origin}/r/${view.code}`;
+  const [readying, setReadying] = useState(false);
+  // The room decides; this count only labels the start button.
+  const waiting = view.players.filter(
+    (p) => p.connected && p.playerId !== view.hostId && !p.ready,
+  ).length;
   const change = async (settings: RoomSettings) => {
     const ack = await request({ type: "settings", settings });
     setNotice(ack.ok ? "" : (ack.message ?? "Could not change the race."));
@@ -243,7 +294,7 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
       : undefined;
   return (
     <main className="mx-auto grid max-w-4xl gap-6 px-4 pb-16 pt-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-4 flex items-center gap-3">
             <LinkButton to="/" variant="secondary" className="min-h-10 px-3 text-base">
@@ -258,22 +309,7 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
             {view.code}
           </h1>
         </div>
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            try {
-              if (navigator.share)
-                await navigator.share({ title: "Kart Party", url: link });
-              else await navigator.clipboard.writeText(link);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            } catch {
-              // The share sheet was dismissed or the clipboard refused.
-            }
-          }}
-        >
-          {copied ? "Link copied" : "Invite friends"}
-        </Button>
+        <InvitePanel code={view.code} />
       </header>
 
       {view.phase === "results" && view.results ? (
@@ -301,33 +337,37 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
           Racers ({view.players.length}/8)
         </h2>
         <ul className="grid gap-2 sm:grid-cols-2">
-          {view.players.map((player) => (
-            <li
-              key={player.playerId}
-              className="skin-control flex items-center gap-3 border border-line px-3 py-2 transition-opacity duration-200"
-              style={{ opacity: player.connected ? 1 : 0.5 }}
-            >
-              <DriverBadge driver={player.driver} nickname={player.name} size={40} />
-              <span className="flex-1 truncate font-bold">
-                {player.name}
-                {player.playerId === view.selfId ? (
-                  <span className="ml-2 text-xs text-highlight">YOU</span>
-                ) : null}
-              </span>
-              {player.playerId === view.hostId ? (
-                <span className="text-xs font-bold uppercase text-accent">Host</span>
-              ) : null}
-              {player.wins > 0 ? (
-                <span className="text-sm text-muted">
-                  {player.wins} {player.wins === 1 ? "win" : "wins"}
-                </span>
-              ) : null}
-              {!player.connected ? (
-                <span className="text-xs text-muted">away</span>
-              ) : null}
-            </li>
-          ))}
+          <AnimatePresence initial={false}>
+            {view.players.map((player) => (
+              <PlayerRow
+                key={player.playerId}
+                player={player}
+                view={view}
+                request={request}
+                onNotice={setNotice}
+              />
+            ))}
+          </AnimatePresence>
         </ul>
+        {self && !host ? (
+          <Button
+            variant={self.ready ? "secondary" : "primary"}
+            className="justify-self-start px-8"
+            aria-pressed={self.ready}
+            disabled={readying || !connected}
+            onClick={async () => {
+              setReadying(true);
+              const ack = await request({ type: "ready", ready: !self.ready });
+              setReadying(false);
+              if (ack.ok) playSfx(self.ready ? "ui-tap" : "ui-confirm");
+              else setNotice(ack.message ?? "Could not change that.");
+            }}
+          >
+            {self.ready ? "Ready ✓ (tap to cancel)" : "I’m ready"}
+          </Button>
+        ) : null}
+        <EmoteBar onSend={onEmote} disabled={!connected} />
+        <AccessControls view={view} request={request} onNotice={setNotice} />
       </section>
 
       {self ? (
@@ -399,7 +439,7 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
             />
             <Button
               className="justify-self-start px-10"
-              disabled={starting}
+              disabled={starting || waiting > 0}
               onClick={async () => {
                 setStarting(true);
                 const ack = await request({ type: "start" });
@@ -409,15 +449,17 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
             >
               {starting
                 ? "Starting…"
-                : gpNextTrack && (view.grandPrix?.round ?? 0) > 0
-                  ? `Next race: ${kartTrackName(gpNextTrack)}`
-                  : settings.mode === "grandPrix"
-                    ? gpFinished
-                      ? "New Grand Prix"
-                      : "Start Grand Prix"
-                    : view.phase === "results"
-                      ? "Race again"
-                      : "Start race"}
+                : waiting > 0
+                  ? `Waiting for ${waiting} ${waiting === 1 ? "racer" : "racers"} to get ready`
+                  : gpNextTrack && (view.grandPrix?.round ?? 0) > 0
+                    ? `Next race: ${kartTrackName(gpNextTrack)}`
+                    : settings.mode === "grandPrix"
+                      ? gpFinished
+                        ? "New Grand Prix"
+                        : "Start Grand Prix"
+                      : view.phase === "results"
+                        ? "Race again"
+                        : "Start race"}
             </Button>
           </>
         ) : (
@@ -430,7 +472,9 @@ function Lobby({ view, request }: { view: RoomView; request: Request }) {
             {settings.cpu > 0 ? ` (${settings.cpuLevel})` : ""} · items {settings.items}{" "}
             · {settings.speedClass}cc
             <span className="mt-2 block text-muted">
-              Waiting for the host to start…
+              {self?.ready
+                ? "You’re ready. Waiting for the host to start…"
+                : "Tap “I’m ready” when you are, then the host starts."}
             </span>
           </p>
         )}
