@@ -2,6 +2,7 @@ import {
   useEffect,
   useCallback,
   useId,
+  useMemo,
   useRef,
   useState,
   type PointerEvent,
@@ -11,7 +12,12 @@ import { AnimatePresence, motion, useIsPresent } from "motion/react";
 import type { KartControls } from "@kart-party/game";
 import { SteeringPad } from "./SteeringPad";
 import { useKartControls } from "./useKartControls";
-import { defaultKartControls } from "./gamepad";
+import {
+  defaultSettings,
+  keysText,
+  updateSettings,
+  useSetting,
+} from "../settings/settings";
 import { steerFromPointer } from "./steering";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 import "./kart.css";
@@ -77,20 +83,21 @@ export function TouchController({
 }) {
   // A mouse can grab the slider. A finger cannot, so a phone or tablet
   // steers from a large zone and uses separate pedal buttons.
-  const padByDefault = () => steeringDefault !== "slider" && coarse();
-  const [pad, setPad] = useState(padByDefault);
-  const chosen = useRef(false);
+  // A layout chosen in settings wins; Auto follows the pointer.
+  const layout = useSetting((value) => value.steering.layout);
+  const [touchScreen, setTouchScreen] = useState(coarse);
   useEffect(() => {
     const media = window.matchMedia?.(coarsePointer);
     if (!media) return;
-    const follow = () => {
-      if (!chosen.current) setPad(steeringDefault !== "slider" && media.matches);
-    };
+    const follow = () => setTouchScreen(media.matches);
     follow();
     media.addEventListener("change", follow);
     return () => media.removeEventListener("change", follow);
-  }, [steeringDefault]);
-  const [swapped, setSwapped] = useState(false);
+  }, []);
+  const pad =
+    layout === "auto" ? steeringDefault !== "slider" && touchScreen : layout === "pad";
+  const swapped = useSetting((value) => value.steering.swapSides);
+  const keys = useSetting((value) => value.keys);
   const pointers = useRef(new Map<number, keyof KartControls>());
   const mouse = useRef<number | null>(null);
   const thumb = useRef<number | null>(null);
@@ -103,8 +110,13 @@ export function TouchController({
     if (thumb.current === pointerId) thumb.current = null;
   }, []);
   const [settings, setSettings] = useState(false);
-  const [preferences, setPreferences] = useState(() => ({ ...defaultKartControls }));
-  const [mouseSteering, setMouseSteering] = useState(false);
+  const sensitivity = useSetting((value) => value.steering.sensitivity);
+  const deadzone = useSetting((value) => value.steering.deadzone);
+  const preferences = useMemo(
+    () => ({ sensitivity, deadzone }),
+    [sensitivity, deadzone],
+  );
+  const mouseSteering = useSetting((value) => value.steering.mouse);
   const id = useId(),
     reduced = usePrefersReducedMotion();
   const locked = disabled || settings;
@@ -170,8 +182,7 @@ export function TouchController({
                 aria-pressed={pad}
                 onClick={() => {
                   input.reset();
-                  chosen.current = true;
-                  setPad(!pad);
+                  updateSettings({ steering: { layout: pad ? "slider" : "pad" } });
                 }}
               >
                 {pad ? "Use steering slider" : "Use thumb pad"}
@@ -181,7 +192,7 @@ export function TouchController({
                 aria-pressed={swapped}
                 onClick={() => {
                   input.reset();
-                  setSwapped(!swapped);
+                  updateSettings({ steering: { swapSides: !swapped } });
                 }}
               >
                 Swap sides
@@ -199,10 +210,9 @@ export function TouchController({
               step="0.05"
               value={preferences.sensitivity}
               onChange={(event) =>
-                setPreferences((value) => ({
-                  ...value,
-                  sensitivity: Number(event.target.value),
-                }))
+                updateSettings({
+                  steering: { sensitivity: Number(event.target.value) },
+                })
               }
             />
             <output htmlFor={`${id}-response`}>
@@ -217,10 +227,7 @@ export function TouchController({
               step="0.01"
               value={preferences.deadzone}
               onChange={(event) =>
-                setPreferences((value) => ({
-                  ...value,
-                  deadzone: Number(event.target.value),
-                }))
+                updateSettings({ steering: { deadzone: Number(event.target.value) } })
               }
             />
             <output htmlFor={`${id}-deadzone`}>
@@ -230,11 +237,18 @@ export function TouchController({
               <input
                 type="checkbox"
                 checked={mouseSteering}
-                onChange={(event) => setMouseSteering(event.target.checked)}
+                onChange={(event) =>
+                  updateSettings({ steering: { mouse: event.target.checked } })
+                }
               />{" "}
               Enable mouse steering area
             </label>
-            <p>Keyboard: arrows or WASD · Space: drift · E: item · R: back to track.</p>
+            <p>
+              Keyboard: {keysText(keys, "gas")} accelerate · {keysText(keys, "left")} /{" "}
+              {keysText(keys, "right")} steer · {keysText(keys, "drift")} drift ·{" "}
+              {keysText(keys, "item")} item · {keysText(keys, "recover")} back to track.
+              Change keys on the Settings page.
+            </p>
             {extraSettings}
             <p>
               Gamepad: A: accelerate · B: brake · RB/RT: drift · X: item · Y: back to
@@ -243,8 +257,7 @@ export function TouchController({
             <button
               type="button"
               onClick={() => {
-                setPreferences({ ...defaultKartControls });
-                setMouseSteering(false);
+                updateSettings({ steering: defaultSettings.steering });
                 input.reset();
               }}
             >
@@ -295,7 +308,8 @@ export function TouchController({
               if (mouse.current !== null) releaseMouse(mouse.current);
             }}
           >
-            Hold the left mouse button here to steer. Use W or ↑ to accelerate.
+            Hold the left mouse button here to steer. Use {keysText(keys, "gas")} to
+            accelerate.
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -314,7 +328,9 @@ export function TouchController({
         ) : null}
       </AnimatePresence>
       {!pad ? (
-        <p className="kart-keyboard-hint">Arrows or WASD to drive · Space to drift</p>
+        <p className="kart-keyboard-hint">
+          {keysText(keys, "gas")} to accelerate · {keysText(keys, "drift")} to drift
+        </p>
       ) : null}
       <div
         className="kart-controller"

@@ -17,6 +17,8 @@ import { RaceOptions } from "../race/RaceOptions";
 import { CupPicker, DriverPicker, PaintPicker, TrackPicker } from "../race/pickers";
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
+import { PodiumStage } from "../race/PodiumStage";
+import { podiumFromTable, podiumPlaces } from "../kart/podium";
 import type { RaceStage } from "../kart/race-stage";
 import { AccessControls, InvitePanel, PlayerRow } from "./lobby-parts";
 import { EmoteBar, EmoteFeed } from "./emotes";
@@ -281,6 +283,17 @@ function Lobby({
     setNotice(ack.ok ? "" : (ack.message ?? "Could not change the race."));
   };
   const settings = view.settings;
+  // Stable while the karts are, so a ready tick does not rebuild the podium scene.
+  const driverKey = view.players
+    .map((p) => `${p.playerId}:${p.driver.style}:${p.driver.paint ?? ""}`)
+    .join("|");
+  const drivers = useMemo(
+    () =>
+      new Map<string, LobbyDriver>(
+        view.players.map((player) => [player.playerId, player.driver]),
+      ),
+    [driverKey],
+  );
   const gp = view.grandPrix;
   const gpFinished = Boolean(gp && gp.round >= gp.total);
   useMusic(view.phase === "results" && gpFinished ? "podium" : "menu");
@@ -317,9 +330,19 @@ function Lobby({
           <h2 id="results-heading" className="wordmark text-3xl">
             {gpFinished ? "Grand Prix complete" : "Results"}
           </h2>
-          {gpFinished && view.grandPrix ? (
-            <Podium table={view.grandPrix.table} selfId={view.selfId} />
-          ) : null}
+          <PodiumStage
+            places={
+              gpFinished && view.grandPrix
+                ? podiumFromTable(view.grandPrix.table)
+                : podiumPlaces(view.results)
+            }
+            drivers={drivers}
+            fallback={
+              gpFinished && view.grandPrix ? (
+                <Podium table={view.grandPrix.table} selfId={view.selfId} />
+              ) : null
+            }
+          />
           <ResultsTable results={view.results} selfId={view.selfId} />
           {view.grandPrix ? (
             <GrandPrixTable

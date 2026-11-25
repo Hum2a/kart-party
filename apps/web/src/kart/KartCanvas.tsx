@@ -5,7 +5,8 @@ import { createCircuit } from "./circuit";
 import type { SelfPrediction } from "./self-prediction";
 import type { KartRenderState } from "./view-readiness";
 import { serverRoundTrip } from "../live/server-clock";
-import { kartCameraPose, boostCameraAmount } from "./presentation";
+import { kartCameraPose, boostCameraAmount, cameraDistanceScale } from "./presentation";
+import { useSetting } from "../settings/settings";
 import { vfxRehearsalRace, type VfxScript } from "./vfx-rehearsal";
 import type { VfxCounts } from "./vfx-budget";
 import {
@@ -83,6 +84,14 @@ export default function KartCanvas({
     reduced = useRef(reducedMotion);
   const drivers = useKartDrivers();
   const liveDrivers = useRef(drivers);
+  // Local view settings: camera distance, kart shadows and colour-safe paint.
+  const camera = useSetting((value) => value.camera);
+  const shadows = useSetting((value) => value.shadows);
+  const colourSafe = useSetting((value) => value.colourSafe);
+  const view = useRef({ camera, shadows, colourSafe });
+  useEffect(() => {
+    view.current = { camera, shadows, colourSafe };
+  }, [camera, shadows, colourSafe]);
   const [revision, setRevision] = useState(0);
   const [failed, setFailed] = useState(false);
   const [vehicleState, setVehicleState] = useState<
@@ -238,6 +247,7 @@ export default function KartCanvas({
       lastDrivers: KartDrivers | undefined;
     let lastQuality = quality.current;
     let lastEffects = effects.current;
+    let lastView: typeof view.current | undefined;
     let lastLook = lookConfig.current;
     let look: ReturnType<typeof createNativeKartLook> | undefined;
     let configuredLook: KartLookPreset | undefined;
@@ -310,6 +320,15 @@ export default function KartCanvas({
       if (mobile && lastFrame && now - lastFrame < frameMs - 1) return;
       const delta = lastFrame ? (now - lastFrame) / 1000 : 1 / 60;
       lastFrame = now;
+      if (lastView !== view.current) {
+        lastView = view.current;
+        circuit.setColourSafe(lastView.colourSafe);
+        dirty = true;
+      }
+      circuit.setShadows(
+        view.current.shadows === "on" ||
+          (view.current.shadows === "auto" && profile.tier !== "low"),
+      );
       if (lastDrivers !== liveDrivers.current) {
         // Kart Party has no photo faces; every driver is a drawn style.
         circuit.setDrivers(liveDrivers.current.byPlayer, (mediaId) => mediaId);
@@ -376,7 +395,12 @@ export default function KartCanvas({
           delta,
           reduced.current,
         );
-        const framing = kartCameraPose(pose, reduced.current, boost);
+        const framing = kartCameraPose(
+          pose,
+          reduced.current,
+          boost,
+          cameraDistanceScale[view.current.camera],
+        );
         camera.position.set(...framing.position);
         camera.lookAt(...framing.target);
         if (camera instanceof THREE.PerspectiveCamera) {
@@ -388,6 +412,7 @@ export default function KartCanvas({
       const effectStats = circuit.vfxStats();
       renderer.domElement.dataset.vfxParticles = String(effectStats.particles);
       renderer.domElement.dataset.vfxSkids = String(effectStats.skids);
+      renderer.domElement.dataset.shadows = String(circuit.shadowCount());
       renderer.domElement.dataset.vfxDust = String(effectStats.byKind?.dust ?? 0);
       renderer.domElement.dataset.vfxSparks = String(effectStats.byKind?.spark ?? 0);
       renderer.domElement.dataset.vfxConfetti = String(

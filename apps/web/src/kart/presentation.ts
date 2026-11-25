@@ -12,10 +12,14 @@ export function kartVehiclePose(pose: KartPose) {
 }
 
 /** Camera framing only. Uses a rendered server pose, never predicts a finish or movement. */
+/** How far the chase camera sits behind and above the kart, from settings. */
+export const cameraDistanceScale = { close: 0.75, normal: 1, far: 1.35 } as const;
+
 export function kartCameraPose(
   pose: KartPose,
   reduced: boolean,
   boost = 0,
+  distance = 1,
 ): {
   position: readonly [number, number, number];
   target: readonly [number, number, number];
@@ -24,16 +28,20 @@ export function kartCameraPose(
   const c = Math.cos(pose.heading),
     s = Math.sin(pose.heading);
   const pullback = Math.max(0, Math.min(1, Number.isFinite(boost) ? boost : 0)) * 2;
+  const scale =
+    Number.isFinite(distance) && distance > 0
+      ? Math.max(0.5, Math.min(2, distance))
+      : 1;
   return reduced
     ? {
-        position: [pose.x, 24 + height, pose.z + 0.01] as const,
+        position: [pose.x, 24 * scale + height, pose.z + 0.01] as const,
         target: [pose.x, height, pose.z] as const,
       }
     : {
         position: [
-          pose.x - c * (9 + pullback),
-          6 + height,
-          pose.z - s * (9 + pullback),
+          pose.x - c * (9 * scale + pullback),
+          6 * scale + height,
+          pose.z - s * (9 * scale + pullback),
         ] as const,
         target: [pose.x + c * 5, 0.8 + height, pose.z + s * 5] as const,
       };

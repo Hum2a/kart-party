@@ -71,7 +71,9 @@ stateDiagram-v2
 
 ### Lazy-Loaded 3D Stage
 
-[`apps/web/src/main.tsx`](../apps/web/src/main.tsx) lazy-loads `/practice`, `/play`, and `/r/:code`, and `three` is strictly confined to [`apps/web/src/kart`](../apps/web/src/kart). Visitors landing on `/` download zero Three.js code until they enter a race.
+[`apps/web/src/main.tsx`](../apps/web/src/main.tsx) lazy-loads `/practice`, `/school`, `/play`, `/r/:code` and `/settings`, and `three` is strictly confined to [`apps/web/src/kart`](../apps/web/src/kart). Visitors landing on `/` download zero Three.js code until they enter a race; the results podium loads its small scene only when results open.
+
+Production builds also emit `/sw.js` from [`build/offline-worker.ts`](../apps/web/build/offline-worker.ts). It precaches the build's own files, loads pages from the network first (falling back to the cached shell offline), and never touches `/api` or room sockets, so an installed app can run practice with no connection.
 
 ### Frames, Not React State
 

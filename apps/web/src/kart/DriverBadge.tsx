@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import { kartPaintHex, type DriverStyle, type LobbyDriver } from "@kart-party/game";
+import type { DriverStyle, LobbyDriver } from "@kart-party/game";
+import { usePaintHex } from "../settings/paint";
 import "./driver.css";
 
 /** A round driver avatar: an emblem for the racer's driver style. */
@@ -13,11 +14,12 @@ export function DriverBadge({
   /** Pixels, or any CSS length such as "1.4em" to follow the text size. */
   size?: number | string;
 }) {
+  const paintHex = usePaintHex();
   return (
     <span
       className="driver-badge"
       // The ring shows the racer's kart paint; the emblem still names the driver.
-      style={{ width: size, height: size, borderColor: kartPaintHex(driver?.paint) }}
+      style={{ width: size, height: size, borderColor: paintHex(driver?.paint) }}
       data-driver-style={driver?.style ?? "racer"}
     >
       <DriverEmblem style={driver?.style ?? "racer"} label={`${nickname}’s driver`} />

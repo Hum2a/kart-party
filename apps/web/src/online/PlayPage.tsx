@@ -7,6 +7,8 @@ import { createRoom, roomExists } from "../api/rooms";
 import { useMusic } from "../audio/use-music";
 import { SoundButton } from "../audio/SoundSettings";
 import { QuickPlay } from "./QuickPlay";
+import { useOnline } from "../pwa/install";
+import { AnimatePresence, motion } from "motion/react";
 
 export function PlayPage() {
   useMusic("menu");
@@ -16,6 +18,7 @@ export function PlayPage() {
   const [nameError, setNameError] = useState("");
   const [codeError, setCodeError] = useState("");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
+  const online = useOnline();
 
   const checkName = () => {
     const parsed = nicknameSchema.safeParse(name);
@@ -41,6 +44,29 @@ export function PlayPage() {
           Up to eight people, each on their own device. Share the four-letter code.
         </p>
       </header>
+      <AnimatePresence initial={false}>
+        {online ? null : (
+          <motion.p
+            key="offline"
+            role="status"
+            className="panel border-highlight p-4 font-bold"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            You are offline. Racing friends needs a connection, but{" "}
+            <a className="underline" href="/practice">
+              practice
+            </a>{" "}
+            and the{" "}
+            <a className="underline" href="/school">
+              driving school
+            </a>{" "}
+            still work.
+          </motion.p>
+        )}
+      </AnimatePresence>
       <div className="panel grid gap-5 p-5">
         <TextField
           label="Your name"

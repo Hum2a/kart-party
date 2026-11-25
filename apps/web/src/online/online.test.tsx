@@ -215,3 +215,27 @@ it("cycles the watched racer through the race order and back round", () => {
   expect(nextTarget(race, order[2]!, 1)).toBe(order[0]);
   expect(nextTarget(race, order[0]!, -1)).toBe(order[2]);
 });
+
+it("says practice still works when the device is offline", async () => {
+  const { MemoryRouter } = await import("react-router");
+  const { PlayPage } = await import("./PlayPage");
+  const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new Error("offline");
+    }),
+  );
+  render(
+    <MemoryRouter>
+      <PlayPage />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText(/You are offline/)).toBeTruthy();
+  online.mockReturnValue(true);
+  act(() => {
+    window.dispatchEvent(new Event("online"));
+  });
+  await waitFor(() => expect(screen.queryByText(/You are offline/)).toBeNull());
+  online.mockRestore();
+});

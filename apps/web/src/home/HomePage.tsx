@@ -5,13 +5,22 @@ import { SoundButton } from "../audio/SoundSettings";
 import { TrackPreview } from "../race/TrackPreview";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 import { useMusic } from "../audio/use-music";
+import { useSetting } from "../settings/settings";
 
 export function HomePage() {
   useMusic("menu");
   const reduced = usePrefersReducedMotion();
+  const schoolDone = useSetting((value) => value.schoolDone);
   return (
     <main className="mx-auto grid max-w-5xl gap-10 px-4 pb-16 pt-10 sm:pt-16">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <LinkButton
+          to="/settings"
+          variant="secondary"
+          className="min-h-10 px-3 text-base"
+        >
+          Settings
+        </LinkButton>
         <SoundButton />
       </div>
       <motion.header
@@ -35,7 +44,16 @@ export function HomePage() {
           <LinkButton to="/practice" variant="secondary" className="min-w-44">
             Practise solo
           </LinkButton>
+          <LinkButton to="/school" variant="secondary" className="min-w-44">
+            Driving school
+          </LinkButton>
         </div>
+        {schoolDone ? null : (
+          <p className="text-muted">
+            New here? The driving school teaches drifting, boosts and items in six short
+            steps.
+          </p>
+        )}
       </motion.header>
 
       <section aria-labelledby="tracks-heading" className="grid gap-4">

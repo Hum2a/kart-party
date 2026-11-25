@@ -4,7 +4,6 @@ import {
   ringCourse,
   courseFeaturePose,
   polylineTrack,
-  kartPaintHex,
   type LobbyDriver,
 } from "@kart-party/game";
 import type { KartRaceView } from "@kart-party/game";
@@ -16,6 +15,7 @@ import { createKartVfxPool, type VfxActor } from "./vfx-budget";
 import { createNativeKartVfx } from "./vfx-renderer";
 import type { KartVfxPreset, KartVfxKind } from "@kart-party/game";
 import type { GraphicsTier } from "./graphics";
+import { paintHex } from "../settings/paint";
 
 type Palette = Record<
   "ground" | "road" | "accent" | "highlight" | "ink" | "muted",
@@ -322,8 +322,34 @@ export function createCircuit(
     value.count = 0;
     value.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   }
+  // A soft dark disc under each kart (K20): one draw call for the whole field.
+  // It sits just above the road markings and shrinks as a kart leaves the ground.
+  const shadowMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.3,
+    depthWrite: false,
+  });
+  materials.add(shadowMat);
+  const discGeo = geo(new THREE.CircleGeometry(1, 18));
+  discGeo.rotateX(-Math.PI / 2);
+  const shadows = batch(discGeo, shadowMat, capacity);
+  shadows.name = "kart-shadows";
+  shadows.count = 0;
+  shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  let shadowsOn = false;
   // Each kart's driver. The old helmet sphere stays unused: its geometry is shared below.
   let paints = new Map<string, THREE.Color>();
+  let paintDrivers: ReadonlyMap<string, LobbyDriver> = new Map();
+  let colourSafe = false;
+  const paintFrom = () => {
+    paints = new Map(
+      [...paintDrivers].flatMap(([playerId, driver]) => {
+        const hex = paintHex(driver.paint, colourSafe);
+        return hex ? [[playerId, new THREE.Color(hex)] as const] : [];
+      }),
+    );
+  };
   const rig = createDriverRig({
     onChange: onVisualChange,
     scene,
@@ -562,6 +588,7 @@ export function createCircuit(
     // Last frame's pose until the loop reaches the followed kart this frame.
     let focusX = tagFrom ? poses.get(tagFrom)?.x : undefined,
       focusZ = tagFrom ? poses.get(tagFrom)?.z : undefined;
+    let shadowCount = 0;
     for (let i = 0; i < drivers.length; i++) {
       const driver = drivers[i]!,
         previous = poses.get(driver.playerId),
@@ -609,6 +636,10 @@ export function createCircuit(
         reduced,
       );
       place(bodies, i, x, 0.6 + height, z, -heading);
+      if (shadowsOn) {
+        const lift = Math.max(0.4, 1 - height * 0.15);
+        place(shadows, shadowCount++, x, 0.14, z, -heading, 1.8 * lift, 1, 1.1 * lift);
+      }
       transform.rotation.set(chassis.roll, -heading, 0, "YXZ");
       transform.updateMatrix();
       bodies.setMatrixAt(i, transform.matrix);
@@ -714,6 +745,8 @@ export function createCircuit(
       value.instanceMatrix.needsUpdate = true;
     }
     rig.end(present);
+    shadows.count = shadowCount;
+    shadows.instanceMatrix.needsUpdate = true;
     if (effects)
       vfxPool!.update({
         raceId: race.raceId,
@@ -929,13 +962,20 @@ export function createCircuit(
       url: (mediaId: string) => string,
     ) {
       rig.setDrivers(next, url);
-      paints = new Map(
-        [...next].flatMap(([playerId, driver]) => {
-          const hex = kartPaintHex(driver.paint);
-          return hex ? [[playerId, new THREE.Color(hex)] as const] : [];
-        }),
-      );
+      paintDrivers = next;
+      paintFrom();
     },
+    /** Kart shadows on or off; the caller decides from settings and detail. */
+    setShadows(enabled: boolean) {
+      shadowsOn = enabled;
+    },
+    /** Redraws kart paint from the colour-blind-safe palette, or the usual one. */
+    setColourSafe(enabled: boolean) {
+      if (enabled === colourSafe) return;
+      colourSafe = enabled;
+      paintFrom();
+    },
+    shadowCount: () => shadows.count,
     driverCounts: rig.counts,
     renderStats: () => ({ drivers: poses.size, detailed: detailedVisible }),
     dispose() {

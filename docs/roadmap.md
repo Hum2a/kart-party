@@ -45,13 +45,13 @@ Status key:
 | K11 | Drift arcs                                     | Built; switch on                                                                                        | 1     |
 | K12 | Boost trails                                   | Built; switch on                                                                                        | 1     |
 | K13 | Boost flames                                   | Built; switch on                                                                                        | 1     |
-| K14 | Skid marks                                     | Planned: pooled, surface-aligned, time-limited                                                          | 5     |
+| K14 | Skid marks                                     | Done: pooled, surface-aligned marks from drifting rear wheels that fade after 4 s                       | done  |
 | K15 | Confetti                                       | Built; switch on for finishes and podium                                                                | 1     |
 | K16 | Shared VFX emitter                             | Done (bounded, pooled)                                                                                  | done  |
 | K17 | VFX authoring bench                            | Planned as a dev-only page                                                                              | 7     |
 | K18 | Gradient sky, sun, horizon                     | Built in the look presets; switch on                                                                    | 1     |
 | K19 | Environment lighting                           | Built in the look presets; switch on                                                                    | 1     |
-| K20 | Following shadows                              | Planned, quality-gated                                                                                  | 5     |
+| K20 | Following shadows                              | Done: a soft disc under every kart, one draw call; Auto turns it off at low detail                      | done  |
 | K21 | Colour grading                                 | Built; switch on                                                                                        | 1     |
 | K22 | Boost wind lines, chromatic response           | Built; switch on at higher graphics                                                                     | 1     |
 | K23 | Lens dirt                                      | Built; off by default                                                                                   | 1     |
@@ -65,7 +65,7 @@ Status key:
 | K31 | Item and recovery shortcuts                    | Done (E, R, X, Y)                                                                                       | done  |
 | K32 | Loading, progress, retry                       | Done                                                                                                    | done  |
 | K33 | Ready check and 3-2-1-GO                       | Done: everyone but the host ticks ready before the host can start; readiness clears each race           | done  |
-| K34 | Race HUD and results                           | Done; podium screen planned                                                                             | 5     |
+| K34 | Race HUD and results                           | Done: results open on a 3D podium of the top three, waving, under confetti                              | done  |
 | K35 | Time-trial mode                                | Done: time trial (no CPUs) races your saved ghost with lap splits                                       | done  |
 | K36 | Best laps and records                          | Done: best race and best lap per track, laps and engine class; ghost saved on a new best                | done  |
 | K37 | Minimap and navigation                         | Done                                                                                                    | done  |
@@ -77,9 +77,9 @@ Status key:
 | K43 | Homing projectile                              | Built (Homing bolt); switch on                                                                          | 1     |
 | K44 | Treats                                         | Built (Treats boost); switch on                                                                         | 1     |
 | K45 | More tracks                                    | Three originals; more planned                                                                           | 6     |
-| K46 | Mode menus, tutorial, controls help            | Menus done; tutorial planned                                                                            | 5     |
+| K46 | Mode menus, tutorial, controls help            | Done: a six-step driving school, and a settings page with key remapping                                 | done  |
 | K47 | Sound effects and music                        | Done: synthesised soundtrack (menu, three tracks, podium) and 30 effects, with music and effects volume | done  |
-| K48 | Installable, offline practice                  | Planned (PWA, practice only)                                                                            | 5     |
+| K48 | Installable, offline practice                  | Done: installable app; practice and the driving school work offline                                     | done  |
 | K49 | Preload, performance, lifecycle                | Done (adaptive graphics, lazy engine)                                                                   | done  |
 | K50 | Debug tools                                    | Planned as dev-only overlays                                                                            | 7     |
 | K51 | Dependencies and attribution                   | Done (notices kept)                                                                                     | done  |
@@ -131,7 +131,7 @@ the phone could not time its finish and every human ended device-timed races as 
 The seed and a rising race revision are now part of each racer's view, and a race
 loaded from storage skips past revisions phones may already have seen.
 
-### Phase 5: presentation
+### Phase 5: presentation (done)
 
 - Podium scene with confetti and the top three karts.
 - Skid marks (K14) and quality-gated shadows (K20).
@@ -140,6 +140,13 @@ loaded from storage skips past revisions phones may already have seen.
 - A settings page: graphics, audio, controls (remap keys, steering sensitivity,
   swap touch sides), camera distance, reduced motion, and colour-blind-safe kart paint.
 - Installable app (PWA) that can play practice offline.
+
+Notes from building it: skid marks were already built and switched on, so this phase
+checked them rather than rebuilding them. Shadows are a soft disc under each kart rather than
+shadow maps, which keeps them to one draw call for a full field of 80. The podium is a small
+scene of its own, loaded with the results. The offline worker is generated at build time
+from the build's own file list, and pages load from the network first, so an online visit
+always gets the latest version.
 
 ### Phase 6: content
 

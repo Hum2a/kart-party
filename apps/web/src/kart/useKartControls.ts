@@ -5,6 +5,7 @@ import {
   readKartGamepad,
   type KartControlPreferences,
 } from "./gamepad";
+import { actionForKey, getSettings, type KartAction } from "../settings/settings";
 
 type Channel = "touch" | "keyboard" | "gamepad";
 const blank = () => ({
@@ -114,38 +115,25 @@ export function useKartControls(options: {
     // Initial state is already neutral. Reconfiguration releases in cleanup;
     // synchronise the external sender here without an extra local render.
     callbacks.current.onChange({ ...kartNeutral });
-    const updateKeys = () =>
+    // Keys come from settings on every press, so a remap applies at once.
+    const updateKeys = () => {
+      const bound = getSettings().keys;
+      const held = (name: KartAction) => bound[name].some((k) => keys.current.has(k));
       publish("keyboard", {
-        steer:
-          Number(keys.current.has("arrowright") || keys.current.has("d")) -
-          Number(keys.current.has("arrowleft") || keys.current.has("a")),
-        gas: keys.current.has("arrowup") || keys.current.has("w"),
-        brake: keys.current.has("arrowdown") || keys.current.has("s"),
-        drift: keys.current.has(" "),
+        steer: Number(held("right")) - Number(held("left")),
+        gas: held("gas"),
+        brake: held("brake"),
+        drift: held("drift"),
       });
+    };
     const keyboard = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      if (
-        ![
-          "arrowleft",
-          "arrowright",
-          "arrowup",
-          "arrowdown",
-          "w",
-          "a",
-          "s",
-          "d",
-          " ",
-          "e",
-          "r",
-        ].includes(key)
-      )
-        return;
       if (event.type === "keyup") {
-        keys.current.delete(key);
-        updateKeys();
+        if (keys.current.delete(key)) updateKeys();
         return;
       }
+      const bound = actionForKey(key, getSettings().keys);
+      if (!bound) return;
       if (modal()) {
         reset();
         return;
@@ -166,8 +154,8 @@ export function useKartControls(options: {
       event.preventDefault();
       const fresh = !keys.current.has(key);
       keys.current.add(key);
-      if (key === "e" || key === "r") {
-        if (fresh && !event.repeat) action(key === "e" ? "item" : "recover");
+      if (bound === "item" || bound === "recover") {
+        if (fresh && !event.repeat) action(bound);
       } else updateKeys();
     };
     const focus = (event: FocusEvent) => {

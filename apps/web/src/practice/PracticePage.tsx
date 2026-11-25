@@ -21,6 +21,8 @@ import { CupPicker, DriverPicker, PaintPicker, TrackPicker } from "../race/picke
 import { ResultsTable } from "../race/ResultsTable";
 import { GrandPrixTable, Podium } from "../race/GrandPrixTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
+import { PodiumStage } from "../race/PodiumStage";
+import { podiumFromTable, podiumPlaces } from "../kart/podium";
 import {
   saveDriver,
   saveName,
@@ -356,7 +358,15 @@ function PracticeRace({
             <h2 id="practice-results-heading" className="wordmark text-3xl">
               {finalRace ? "Grand Prix complete" : "Results"}
             </h2>
-            {finalRace ? <Podium table={table} selfId={practicePlayerId} /> : null}
+            <PodiumStage
+              places={
+                finalRace ? podiumFromTable(table) : podiumPlaces(outcome.results)
+              }
+              drivers={drivers}
+              fallback={
+                finalRace ? <Podium table={table} selfId={practicePlayerId} /> : null
+              }
+            />
             {!grandPrix && outcome.best ? (
               <p
                 className={outcome.improved ? "font-bold text-highlight" : "text-muted"}

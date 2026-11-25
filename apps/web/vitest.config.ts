@@ -11,7 +11,7 @@ export default defineConfig({
       Number(process.versions.node.split(".")[0]) >= 25 ? ["--no-webstorage"] : [],
     css: true,
     setupFiles: ["./test/setup.ts"],
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "build/**/*.test.ts"],
     sequence: { concurrent: false },
   },
 });

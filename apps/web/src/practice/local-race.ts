@@ -33,6 +33,8 @@ export type PracticeSetup = {
   items: RoomSettings["items"];
   speedClass: RoomSettings["speedClass"];
   paint: KartPaint;
+  /** False for a lesson: no best times, no ghost to race or save. */
+  record?: boolean;
 };
 
 export type PracticeOutcome = {
@@ -62,6 +64,7 @@ function withGhost(view: KartRaceView, ghost: KartGhost | undefined): KartRaceVi
  */
 export function useLocalRace(setup: PracticeSetup, run: number) {
   const { name, trackId, laps, cpu, cpuLevel, items, speedClass } = setup;
+  const keepRecords = setup.record !== false;
   // Keyed on values, not object identity, so a new but equal setup is the same race.
   const session = useMemo(
     () =>
@@ -77,7 +80,7 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
       }),
     [name, trackId, laps, cpu, cpuLevel, items, speedClass, run],
   );
-  const timeTrial = cpu === 0;
+  const timeTrial = cpu === 0 && keepRecords;
   const ghost = useMemo(
     () => (timeTrial ? readGhost({ trackId, laps, speedClass }) : undefined),
     // A new session reloads the ghost, so beating it replaces what you race next.
@@ -117,7 +120,7 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
       const mine = results.find((row) => row.playerId === practicePlayerId);
       const key = { trackId, laps, speedClass };
       const record =
-        mine?.timeMs != null
+        keepRecords && mine?.timeMs != null
           ? recordBest(key, mine.timeMs, Date.now(), undefined, lapsMs)
           : undefined;
       let ghostSaved = false;
@@ -148,7 +151,7 @@ export function useLocalRace(setup: PracticeSetup, run: number) {
         ghostSaved,
       });
     },
-    [session, trackId, laps, speedClass, timeTrial, recorder],
+    [session, trackId, laps, speedClass, timeTrial, recorder, keepRecords],
   );
 
   // A fresh run starts with a three-second countdown on the grid.

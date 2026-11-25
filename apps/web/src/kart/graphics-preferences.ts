@@ -5,19 +5,14 @@ import {
   type GraphicsMode,
   type GraphicsTier,
 } from "./graphics";
+import { updateSettings, useSetting } from "../settings/settings";
 
 export const GraphicsTierContext = createContext<GraphicsTier>("high");
 export const useGraphicsTier = () => useContext(GraphicsTierContext);
 
+/** The graphics choice is saved in settings; frame health belongs to each view. */
 export function useKartGraphics(players: number) {
-  const [mode, setMode] = useState<GraphicsMode>(() => {
-    try {
-      const value = sessionStorage.getItem("kart-party-graphics");
-      return value === "high" || value === "low" ? value : "auto";
-    } catch {
-      return "auto";
-    }
-  });
+  const mode = useSetting((value) => value.graphics);
   const [health, setHealth] = useState<FrameHealth>("checking");
   return {
     mode,
@@ -27,13 +22,8 @@ export function useKartGraphics(players: number) {
       setHealth((previous) => (previous === "strained" ? previous : next));
     },
     onMode(next: GraphicsMode) {
-      setMode(next);
+      updateSettings({ graphics: next });
       setHealth("checking");
-      try {
-        sessionStorage.setItem("kart-party-graphics", next);
-      } catch {
-        /* Controls still work without storage. */
-      }
     },
   };
 }

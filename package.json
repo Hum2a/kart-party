@@ -15,6 +15,7 @@
     "build": "npm run build -w @kart-party/web",
     "preview": "npm run preview -w @kart-party/web",
     "deploy": "node scripts/deploy.mjs",
+    "icons": "node scripts/make-icons.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:game": "npm run test -w @kart-party/game",

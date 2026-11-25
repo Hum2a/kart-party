@@ -155,3 +155,38 @@ Top speed is where power meets drag, so scaling power by the cube moves top spee
 | **Reactions**   | Eight emotes, passed to everyone and never stored. Four in a burst, then one every two seconds. Racers at the wheel see them but get no buttons.                                 |
 | **Host tools**  | Remove a racer (after confirming), hand over the host to someone connected, lock the room to its roster, and list it on quick play.                                              |
 | **Quick play**  | A single `RoomDirectory` Durable Object keeps listed rooms. Rooms report only when their roster, phase or access changes, and drop off after 20 minutes of silence.              |
+
+## 8. Driving School and Settings
+
+### Driving School (`apps/web/src/practice/school.ts`)
+
+Six short steps on the Party Ring at 50cc, with items on and no other karts. Each step
+watches the race view and moves on when the racer has done it. Nothing in the school
+is saved as a best time or ghost.
+
+| Step              | Done when                                                   |
+| :---------------- | :---------------------------------------------------------- |
+| Accelerate        | 0.8 s at 6 m/s or more (about two thirds of 50cc top speed) |
+| Steer             | Steered at least 40% left and 40% right while moving        |
+| Drift             | The drift gauge fills its first bar                         |
+| Boost             | A boost is running (let go of a charged drift)              |
+| Use an item       | The race accepted an item use                               |
+| Back on the track | The race accepted a recovery                                |
+
+Any step can be skipped. Finishing or leaving marks the school as done, and the home
+page stops suggesting it.
+
+### Settings (`apps/web/src/settings/settings.ts`)
+
+Saved in this browser's local storage, checked on every read, and shared live between
+open tabs.
+
+| Setting                 | Choices                                                                                |
+| :---------------------- | :------------------------------------------------------------------------------------- |
+| Detail                  | Auto (adjusts to frame health), High, Low                                              |
+| Kart shadows            | Auto (off at low detail), On, Off                                                      |
+| Camera                  | Close, Normal, Far (scales the chase camera's distance and height)                     |
+| Touch steering          | Auto, thumb pad or slider; swap sides; steering response; gamepad deadzone; mouse area |
+| Keyboard                | Two keys per action. A key already in use moves; an action it leaves empty swaps keys  |
+| Motion                  | Follow my device, or always reduce                                                     |
+| Colour-blind-safe paint | Draws paints from the Okabe–Ito set on this device only; names stay the same           |

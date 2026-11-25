@@ -12,6 +12,7 @@ import {
 } from "@kart-party/game";
 import { DriverEmblem } from "../kart/DriverBadge";
 import { TrackPreview } from "./TrackPreview";
+import { usePaintHex } from "../settings/paint";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 
 const difficultyWords = { easy: "Easy", medium: "Medium", hard: "Hard" } as const;
@@ -119,6 +120,7 @@ export function PaintPicker({
   value: KartPaint;
   onChange: (paint: KartPaint) => void;
 }) {
+  const paintHex = usePaintHex();
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1.5 text-sm font-bold uppercase tracking-wide text-muted">
@@ -140,7 +142,7 @@ export function PaintPicker({
             <span
               aria-hidden="true"
               className="size-7 rounded-full border-2 border-background shadow"
-              style={{ background: paint.hex }}
+              style={{ background: paintHex(paint.id) }}
             />
             {paint.name}
           </label>

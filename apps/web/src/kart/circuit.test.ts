@@ -319,7 +319,8 @@ it("renders 80 ghost karts with bounded shared geometry, no shadow maps and disp
   expect(instances.filter((mesh) => mesh.count === 80).length).toBe(11);
   // Driver styles add shared shapes, never one per driver.
   expect(geometries.size).toBeLessThan(40);
-  expect(materials.size).toBeLessThan(10);
+  // One more than before phase 5: the kart shadows share a single see-through material.
+  expect(materials.size).toBeLessThan(11);
   // Hundreds of props, karts and drivers use fewer than 70 non-label draw objects,
   // and the same number for one driver as for eighty.
   const drawObjects = circuit.scene.children.filter(
