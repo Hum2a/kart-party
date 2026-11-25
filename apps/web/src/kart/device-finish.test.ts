@@ -85,3 +85,67 @@ describe("device-timed finishes", () => {
     expect(session.race.ended).toBe(true);
   });
 });
+
+describe("pose reports", () => {
+  it("sends the phone's pose with its controls, and the room's copy keeps up", () => {
+    const session = RaceSession.create({
+      raceId: "pose-city",
+      players: [{ playerId: me, name: "Phone" }],
+      trackId: "city-v1",
+      laps: 1,
+      cpu: 0,
+      items: "off",
+    });
+    const prediction = createSelfPrediction();
+    prediction.running(true, 0);
+    prediction.server(session.view(me), 0, 0);
+    let sequence = 0,
+      worst = 0,
+      reports = 0;
+    for (let t = 16; t < 20_000; t += 16) {
+      const pose = prediction.pose(t) ?? session.race.drivers[0]!;
+      const control = kartCpuInput(
+        { x: pose.x, z: pose.z, heading: pose.heading, speed: pose.speed },
+        "city-v1",
+        1,
+        t,
+        0,
+      );
+      prediction.input(control, t);
+      if (t % kartTickMs < 16) {
+        const report = prediction.report(t);
+        if (report) reports++;
+        const input = {
+          raceId: session.race.raceId,
+          sequence: ++sequence,
+          ...control,
+          ...(report ? { pose: report } : {}),
+        };
+        prediction.published(input, t);
+        session.input(me, input, t);
+        session.tick(t);
+        prediction.server(session.view(me), t, 0);
+        const room = session.race.drivers[0]!;
+        const phone = prediction.pose(t)!;
+        worst = Math.max(worst, Math.hypot(room.x - phone.x, room.z - phone.z));
+      }
+    }
+    expect(reports).toBeGreaterThan(150);
+    expect(worst).toBeLessThan(4);
+  });
+
+  it("reports nothing in a server-timed race", () => {
+    const session = RaceSession.create({
+      raceId: "legacy",
+      players: [{ playerId: me, name: "Phone" }],
+      trackId: "parkside-v1",
+      laps: 1,
+      cpu: 0,
+      items: "off",
+    });
+    const prediction = createSelfPrediction();
+    prediction.running(true, 0);
+    prediction.server({ ...session.view(me), timingMode: undefined }, 0, 0);
+    expect(prediction.report(100)).toBeUndefined();
+  });
+});

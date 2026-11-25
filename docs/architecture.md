@@ -63,7 +63,8 @@ stateDiagram-v2
 1. **Input Queueing**: Steering/pedal intents (`input` messages) arrive over WebSocket and are rate-limited (`capacity: 40, refillPerSecond: 25`) and stamped with `now - goAt`. Up to 4 pending inputs per racer are held in memory and folded into the next 100 ms `tick()`, which steps the underlying `20 ms` physics loop cleanly.
 2. **Checkpointing**: Running race state is checkpointed to SQLite KV every `10` ticks (`1 s`), and immediately on `finish`, `item`, `recover`, or race settlement.
 3. **Device-Timed Finishes**: To keep steering instantaneous, each player renders their own kart from local prediction (`self-prediction.ts`) and submits a `finish` report containing total time and lap splits. `RaceSession` validates player identity, `raceId`, and lap count before accepting.
-4. **Finish Grace Window**: Once the first human racer finishes, `RaceSession` enforces a **30-second (`finishGraceMs = 30_000`)** grace window before ending the race and awarding a win to the 1st-place human finisher.
+4. **Pose Reports**: The room still steps its own copy of each phone-timed kart, which is what other racers see and what collects items, but it only hears controls about ten times a second. So each control message also carries the phone's pose (`kartPoseReportSchema`: race time, position, velocity), and `adoptReportedPose` moves the room's copy there when the report moves forward in time, at no more than `60 m/s` from the last report (or `8 m` more from the room's own copy), without passing through a wall, on the course and within `1.5 s` of the race clock. The jump runs through the same lap gates as a physics step (`progressLap`), so no gate is skipped. Server-timed races ignore reports.
+5. **Finish Grace Window**: Once the first human racer finishes, `RaceSession` enforces a **30-second (`finishGraceMs = 30_000`)** grace window before ending the race and awarding a win to the 1st-place human finisher.
 
 ---
 

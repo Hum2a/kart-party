@@ -1,6 +1,7 @@
 import { kartFinishSchema } from "./kart-rollback-schema.ts";
 import { type KartSettings, type KartSettingHistory } from "./kart-settings.ts";
 import { polylineTrack } from "./kart-polyline-tracks.ts";
+import type { PolylineTrack } from "./kart-polyline.ts";
 import { polylineTrackLimitMs } from "./kart-route.ts";
 import { ringCourse } from "./kart-course.ts";
 import {
@@ -21,6 +22,7 @@ import {
   kartTrackId,
   type KartControls,
   type KartInput,
+  type KartPoseReport,
   type KartDriver,
   type KartLookHistory,
   type KartLookName,
@@ -130,6 +132,8 @@ type Driver = Omit<
     progress: number;
   };
   lastRecoveryAt?: number;
+  /** The last pose report adopted from this kart's phone (phone-timed races). */
+  reported?: { x: number; z: number; at: number };
   lastImpact?: KartContactEvent;
   lap?: { crossingsMs: (number | null)[]; recoveries: number };
   /** Multi-lap races: laps already completed, and the race time each ended. */
@@ -343,6 +347,7 @@ function applyInput(
   input: KartInput,
   elapsed: number,
   launches = false,
+  race?: KartRace,
 ): boolean {
   if (
     driver.status !== "RACING" ||
@@ -359,6 +364,121 @@ function applyInput(
   };
   driver.inputUntil = elapsed + 400;
   if (launches && input.gas && !driver.launch) launchKart(driver, elapsed);
+  if (input.pose && race) adoptReportedPose(driver, input.pose, race, elapsed);
+  return true;
+}
+
+/**
+ * Limits on a phone's pose report. The room only moves its copy of a kart to
+ * where the phone says it is when getting there was possible.
+ */
+export const kartPoseTuning = {
+  /** Faster than any kart goes, even boosted at 150cc, in metres a second. */
+  maxSpeed: 60,
+  /** Allowance for rounding and clock jitter, in metres. */
+  slack: 2,
+  /** How far the room's own copy may have wandered and still be corrected. */
+  drift: 8,
+  /** A report further than this from the race clock is stale or invented. */
+  windowMs: 1500,
+  /** Furthest from the course centreline a report may be, in metres. */
+  routeDistance: 20,
+} as const;
+
+/** True when segment a–b passes through segment c–d. */
+function segmentsCross(
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  wall: { ax: number; az: number; bx: number; bz: number },
+) {
+  const side = (
+    px: number,
+    pz: number,
+    qx: number,
+    qz: number,
+    rx: number,
+    rz: number,
+  ) => Math.sign((qx - px) * (rz - pz) - (qz - pz) * (rx - px));
+  return (
+    side(ax, az, bx, bz, wall.ax, wall.az) * side(ax, az, bx, bz, wall.bx, wall.bz) <
+      0 &&
+    side(wall.ax, wall.az, wall.bx, wall.bz, ax, az) *
+      side(wall.ax, wall.az, wall.bx, wall.bz, bx, bz) <
+      0
+  );
+}
+
+/**
+ * Phone-timed races: the phone simulates its own kart and reports where it is
+ * with its controls. The room's copy would otherwise drift (it only sees the
+ * controls ten times a second) and can end up stuck on a barrier the phone
+ * never touched. A report is adopted only when it moves forward in time, at a
+ * believable speed, without passing through a wall and while still on the
+ * course, from either the last report or the room's own copy. The jump runs
+ * through the same lap gates as a physics step, so no gate is skipped.
+ * Returns whether the report was adopted.
+ */
+export function adoptReportedPose(
+  d: Driver,
+  pose: KartPoseReport,
+  race: KartRace,
+  elapsed: number,
+): boolean {
+  if (race.timingMode !== "device-v1" || d.cpu || d.status !== "RACING") return false;
+  const tuning = kartPoseTuning;
+  if (Math.abs(pose.at - elapsed) > tuning.windowMs) return false;
+  if (d.reported && pose.at <= d.reported.at) return false;
+  const track = polylineTrack(race.trackId);
+  const nearby = track?.nearbyWalls ?? nearbyRingWalls;
+  const projection = track?.route.progress(pose.x, pose.z);
+  if (projection && projection.distance > tuning.routeDistance) return false;
+  if (!track && Math.abs(Math.hypot(pose.x, pose.z) - 42) > 12) return false;
+  const reachable = (x: number, z: number, ms: number, allowance: number) => {
+    const distance = Math.hypot(pose.x - x, pose.z - z);
+    if (distance > (tuning.maxSpeed * Math.max(0, ms)) / 1000 + allowance) return false;
+    const walls = nearby((x + pose.x) / 2, (z + pose.z) / 2, distance / 2 + 2);
+    return !walls.some((wall) => segmentsCross(x, z, pose.x, pose.z, wall));
+  };
+  const fromReport =
+    d.reported !== undefined &&
+    reachable(d.reported.x, d.reported.z, pose.at - d.reported.at, tuning.slack);
+  const fromRoom =
+    !fromReport &&
+    reachable(d.x, d.z, Math.abs(pose.at - elapsed), tuning.slack + tuning.drift);
+  if (!fromReport && !fromRoom) return false;
+  const moved = Math.hypot(pose.x - d.x, pose.z - d.z);
+  const forward = pose.vx * Math.cos(pose.heading) + pose.vz * Math.sin(pose.heading);
+  d.x = pose.x;
+  d.z = pose.z;
+  d.heading = pose.heading;
+  d.speed = forward;
+  if (d.physics)
+    d.physics = {
+      ...d.physics,
+      x: pose.x,
+      z: pose.z,
+      heading: pose.heading,
+      vx: pose.vx,
+      vz: pose.vz,
+    };
+  d.reported = { x: pose.x, z: pose.z, at: pose.at };
+  // One lap step for the jump: fast enough to count as plausible, so a gate
+  // between the old and new positions is crossed rather than skipped.
+  const stepMs = 20;
+  const speed = Math.max(Math.abs(forward), (moved * 1000) / stepMs);
+  progressLap(
+    d,
+    elapsed,
+    stepMs,
+    speed,
+    race.physicsVersion,
+    race,
+    track,
+    (track ? soloDriving : ringDriving).radius,
+    nearby,
+  );
   return true;
 }
 
@@ -533,6 +653,7 @@ function expandedTimeline(
           event.input,
           event.elapsed,
           next.launchVersion === 1,
+          next,
         );
   for (let from = next.elapsedMs; from < target;) {
     const end = Math.min(target, from + 20);
@@ -570,6 +691,7 @@ function expandedTimeline(
           event.input,
           event.elapsed,
           next.launchVersion === 1,
+          next,
         );
       }
       positions.set(driver.playerId, index);
@@ -673,6 +795,7 @@ export function reduceKartTimeline(
         event.input,
         event.elapsed,
         race.launchVersion === 1,
+        next,
       );
     }
     advanceDriver(
@@ -894,6 +1017,7 @@ export function reduceKart(
       event.value,
       race.elapsedMs,
       race.launchVersion === 1,
+      next,
     )
     ? next
     : race;
@@ -1100,13 +1224,42 @@ function stepDriver(
       d.speed *= 0.95;
     }
   }
+  progressLap(
+    d,
+    elapsed,
+    ms,
+    d.speed,
+    version,
+    race,
+    track,
+    profile.radius,
+    nearbyWalls,
+  );
+}
+
+/**
+ * Lap gates, recap crossings, safe points and new laps for one step of a
+ * kart's movement. Shared by the physics step and an adopted device pose,
+ * so both pass the same ordered gates.
+ */
+function progressLap(
+  d: Driver,
+  elapsed: number,
+  ms: number,
+  speed: number,
+  version: "arcade-v2" | undefined,
+  race: KartRace | undefined,
+  track: PolylineTrack | undefined,
+  radius: number,
+  nearbyWalls: ReturnType<typeof indexWalls>,
+): void {
   const projection = track?.route.progress(d.x, d.z);
   const lapLength = track?.route.lapLength ?? tau;
   const angle = projection?.along ?? Math.atan2(d.z, d.x);
   const lap = advanceKartLap(d, {
     along: angle,
     lapLength,
-    speed: d.speed,
+    speed,
     stepMs: ms,
     ...(projection ? { routeDistance: projection.distance } : {}),
   });
@@ -1130,7 +1283,7 @@ function stepDriver(
     !d.physics?.contact &&
     !(d.physics?.height ?? 0) &&
     (!track || track.surfaceAt(d.x, d.z) === "road") &&
-    clearOfWalls(d.x, d.z, nearbyWalls(d.x, d.z, 3), profile.radius + 2)
+    clearOfWalls(d.x, d.z, nearbyWalls(d.x, d.z, 3), radius + 2)
   )
     d.lastSafe = {
       x: d.x,

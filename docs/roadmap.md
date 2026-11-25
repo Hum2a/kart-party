@@ -164,12 +164,12 @@ it. Branch progress eases in from the main road so the existing lap gates accept
 unchanged. Unlocks are kept on the device, as there are no accounts. Two more cups and a
 six-race Grand Tour use the new tracks.
 
-Found while testing, and left for its own change: in phone-timed races the room steps its
+Found while testing, and fixed straight after: in phone-timed races the room stepped its
 own copy of each kart from controls sent about ten times a second, while the phone
-simulates every change. The copies can drift apart, and the room's copy can get stuck on a
-barrier. Finish times still come from the phone, but the sector and wrong-way messages,
-item pickups and what other racers see follow the room's copy. The fix is for the phone
-to report its pose and the room to adopt it within plausible bounds.
+simulates every change, so the copies drifted apart and the room's copy could get stuck on
+a barrier (the sector and wrong-way messages, item pickups and what other racers see
+followed it). The phone now sends its pose with its controls, and the room adopts it when
+it is believable (see the architecture notes).
 
 ### Phase 7: depth and tooling
 

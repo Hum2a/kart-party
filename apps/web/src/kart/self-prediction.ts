@@ -21,6 +21,7 @@ import {
   type KartRaceView,
   type Wall,
   type KartHandling,
+  type KartPoseReport,
   surfaceSlowdown,
   type DrivingSlowdown,
 } from "@kart-party/game";
@@ -471,6 +472,22 @@ function createRollbackPrediction() {
       }
     },
     finish: () => finished,
+    /** Where this kart is on the phone, for the room to adopt with the next controls. */
+    report(now: number): KartPoseReport | undefined {
+      if (!active || finished) return undefined;
+      advance(elapsed(now));
+      if (!body) return undefined;
+      const round = (value: number, places: number) =>
+        Math.round(value * 10 ** places) / 10 ** places;
+      return {
+        at: Math.round(simulatedAt),
+        x: round(body.x, 2),
+        z: round(body.z, 2),
+        heading: round(body.heading, 4),
+        vx: round(body.vx, 2),
+        vz: round(body.vz, 2),
+      };
+    },
     pose(now: number): PredictedPose | undefined {
       advance(elapsed(now));
       if (!body) return undefined;
@@ -524,6 +541,10 @@ export function createSelfPrediction() {
     },
     finish() {
       return device ? rollback.finish() : undefined;
+    },
+    /** Phone-timed races only: the pose to send with controls. */
+    report(now: number) {
+      return device ? rollback.report(now) : undefined;
     },
     reset() {
       legacy.reset();

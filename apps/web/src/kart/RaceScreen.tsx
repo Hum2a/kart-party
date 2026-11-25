@@ -108,8 +108,11 @@ export function RaceScreen({
   const driveOpen = open && viewUsable && !localFinish;
   const sendInput = useCallback(
     (input: KartInput) => {
-      prediction.published(input, performance.now());
-      onInput?.(input);
+      const now = performance.now();
+      // Phone-timed races carry the phone's own pose, so the room's copy keeps up.
+      const pose = prediction.report(now);
+      prediction.published(input, now);
+      onInput?.(pose ? { ...input, pose } : input);
     },
     [prediction, onInput],
   );

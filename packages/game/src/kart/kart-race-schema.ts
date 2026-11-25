@@ -170,10 +170,27 @@ export const kartControlsSchema = z
   })
   .strict();
 export type KartControls = z.infer<typeof kartControlsSchema>;
+/**
+ * Where a phone-timed kart is on its own device: its race time, position and
+ * velocity. The room adopts it after checking it is believable, so the room's
+ * copy of the kart (what other racers see, items, sectors) stays with the phone.
+ */
+export const kartPoseReportSchema = z
+  .object({
+    at: z.number().int().min(0).max(kartMaxLimitMs),
+    x: z.number().finite().min(-5000).max(5000),
+    z: z.number().finite().min(-5000).max(5000),
+    heading: z.number().finite().min(-1000).max(1000),
+    vx: z.number().finite().min(-200).max(200),
+    vz: z.number().finite().min(-200).max(200),
+  })
+  .strict();
+export type KartPoseReport = z.infer<typeof kartPoseReportSchema>;
 export const kartInputSchema = kartControlsSchema
   .extend({
     raceId: z.string().min(1).max(120),
     sequence: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    pose: kartPoseReportSchema.optional(),
   })
   .strict();
 export type KartInput = z.infer<typeof kartInputSchema>;
