@@ -6,6 +6,7 @@ import { TrackPreview } from "../race/TrackPreview";
 import { usePrefersReducedMotion } from "../anim/use-reduced-motion";
 import { useMusic } from "../audio/use-music";
 import { useSetting } from "../settings/settings";
+import { appVersion } from "../version";
 
 export function HomePage() {
   useMusic("menu");
@@ -125,7 +126,7 @@ export function HomePage() {
           <a className="underline" href="https://github.com/Hum2a/kart-party">
             Source on GitHub
           </a>
-          .
+          . Version {appVersion}.
         </p>
       </footer>
     </main>
