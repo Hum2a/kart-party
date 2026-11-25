@@ -18,6 +18,8 @@ import { CupPicker, DriverPicker, PaintPicker, TrackPicker } from "../race/picke
 import { ResultsTable } from "../race/ResultsTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
 import { PodiumStage } from "../race/PodiumStage";
+import { UnlockNotice } from "../unlocks/UnlockViews";
+import { useGrandPrixUnlocks } from "../unlocks/unlocks";
 import { podiumFromTable, podiumPlaces } from "../kart/podium";
 import type { RaceStage } from "../kart/race-stage";
 import { AccessControls, InvitePanel, PlayerRow } from "./lobby-parts";
@@ -305,6 +307,16 @@ function Lobby({
     gp && !gpFinished && settings.mode === "grandPrix"
       ? kartCup(gp.cupId).tracks[gp.round]
       : undefined;
+  // A finished Grand Prix may unlock paints and drivers on this device.
+  const freshUnlocks = useGrandPrixUnlocks(
+    view.phase === "results" && gp && gpFinished
+      ? {
+          key: `${view.code}:${gp.cupId}:${gp.table.map((row) => `${row.playerId}=${row.points}`).join(",")}`,
+          cupId: gp.cupId,
+          place: gp.table.find((row) => row.playerId === view.selfId)?.place,
+        }
+      : null,
+  );
   return (
     <main className="mx-auto grid max-w-4xl gap-6 px-4 pb-16 pt-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -343,6 +355,7 @@ function Lobby({
               ) : null
             }
           />
+          <UnlockNotice ids={freshUnlocks} />
           <ResultsTable results={view.results} selfId={view.selfId} />
           {view.grandPrix ? (
             <GrandPrixTable
@@ -442,7 +455,11 @@ function Lobby({
               onChange={(mode) => change({ ...settings, mode })}
               options={[
                 { value: "race", label: "Single race" },
-                { value: "grandPrix", label: "Grand Prix", note: "3 races, points" },
+                {
+                  value: "grandPrix",
+                  label: "Grand Prix",
+                  note: "A cup of races, points",
+                },
               ]}
             />
             {settings.mode === "grandPrix" ? (

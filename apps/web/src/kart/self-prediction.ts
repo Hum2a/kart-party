@@ -21,6 +21,8 @@ import {
   type KartRaceView,
   type Wall,
   type KartHandling,
+  surfaceSlowdown,
+  type DrivingSlowdown,
 } from "@kart-party/game";
 
 /**
@@ -49,7 +51,7 @@ type Sample = { at: number; input: DrivingInput };
 type Environment = {
   profile: DrivingProfile;
   walls: (x: number, z: number, reach: number) => Wall[];
-  offRoad: (x: number, z: number) => boolean;
+  ground: (x: number, z: number) => DrivingSlowdown;
   features: readonly CourseFeature[];
   handling: KartHandling;
 };
@@ -80,7 +82,7 @@ function environment(race: KartRaceView): Environment {
   return {
     profile: classProfile(course ? soloDriving : ringDriving, race.speedClass),
     walls: course ? course.nearbyWalls : ringIndex,
-    offRoad: course ? (x, z) => course.surfaceAt(x, z) !== "road" : () => false,
+    ground: course ? (x, z) => surfaceSlowdown(course.surfaceAt(x, z)) : () => false,
     features: race.courseEnabled ? (course?.course ?? ringCourse) : [],
     handling:
       race.presentation?.version === 2 || race.presentation?.version === 3
@@ -151,7 +153,7 @@ function createLegacyPrediction() {
         ms,
         env!.profile,
         env!.walls(next.x, next.z, env!.profile.radius + speed * 0.02),
-        slowedUntil > elapsed ? true : env!.offRoad(next.x, next.z) ? "sand" : false,
+        slowedUntil > elapsed ? true : env!.ground(next.x, next.z),
         true,
         env!.features,
         env!.handling,
@@ -345,9 +347,7 @@ function createRollbackPrediction() {
             simulatedAt < race!.elapsedMs + effect.slowedMs,
         )
           ? true
-          : env.offRoad(body.x, body.z)
-            ? "sand"
-            : false,
+          : env.ground(body.x, body.z),
         true,
         env.features,
         env.handling,

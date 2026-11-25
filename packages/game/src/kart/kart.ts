@@ -86,6 +86,7 @@ import {
   kartSpeedFactor,
   type KartSpeedClass,
   type DrivingBody,
+  surfaceSlowdown,
 } from "./kart-driving.ts";
 
 export * from "./kart-race-schema.ts";
@@ -967,8 +968,8 @@ function stepDriver(
       nearbyWalls(body.x, body.z, profile.radius + Math.hypot(body.vx, body.vz) * 0.02),
       d.power && d.power.slowedUntil > elapsed
         ? true
-        : track && track.surfaceAt(body.x, body.z) !== "road"
-          ? "sand"
+        : track
+          ? surfaceSlowdown(track.surfaceAt(body.x, body.z))
           : false,
       fresh,
       courseEnabled ? (track?.course ?? ringCourse) : [],

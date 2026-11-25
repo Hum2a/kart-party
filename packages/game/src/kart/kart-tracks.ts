@@ -6,9 +6,17 @@ import { ringItemBoxes } from "./kart-powers.ts";
 import { ringCourse } from "./kart-course.ts";
 import { parkTrackId } from "./kart-park.ts";
 import { harbourTrackId } from "./kart-harbour.ts";
+import { beachTrackId, cityTrackId, summitTrackId } from "./kart-track-ids.ts";
 import { polylineTracks } from "./kart-polyline-tracks.ts";
 
-export const kartTrackIds = [kartTrackId, parkTrackId, harbourTrackId] as const;
+export const kartTrackIds = [
+  kartTrackId,
+  parkTrackId,
+  harbourTrackId,
+  cityTrackId,
+  summitTrackId,
+  beachTrackId,
+] as const;
 export const kartTrackIdSchema = z.enum(kartTrackIds);
 
 export const kartTrackDefinitionSchema = z
@@ -24,12 +32,16 @@ export const kartTrackDefinitionSchema = z
         segments: z.number().int().positive(),
       })
       .strict(),
-    itemBoxes: z.number().int().min(0).max(32),
+    // The race view carries at most 24 boxes (kartPowerViewSchema).
+    itemBoxes: z.number().int().min(0).max(24),
     features: z
       .object({
         boosts: z.number().int().nonnegative(),
         ramps: z.number().int().nonnegative(),
         hazards: z.number().int().nonnegative(),
+        shortcuts: z.number().int().nonnegative(),
+        alternates: z.number().int().nonnegative(),
+        bridges: z.number().int().nonnegative(),
       })
       .strict(),
     lapLimitMs: z.number().int().positive(),
@@ -37,14 +49,20 @@ export const kartTrackDefinitionSchema = z
   .strict();
 export type KartTrackDefinition = z.infer<typeof kartTrackDefinitionSchema>;
 
-const features = (course: readonly { kind: string }[]) => ({
+const features = (
+  course: readonly { kind: string }[],
+  track?: (typeof polylineTracks)[string],
+) => ({
   boosts: course.filter((f) => f.kind === "boost").length,
   ramps: course.filter((f) => f.kind === "ramp").length,
   hazards: course.filter((f) => f.kind === "hazard").length,
+  shortcuts: track?.branches.filter((b) => b.kind === "shortcut").length ?? 0,
+  alternates: track?.branches.filter((b) => b.kind === "alternate").length ?? 0,
+  bridges: track?.narrows.filter((n) => n.bridge).length ?? 0,
 });
 
 const polyline = (
-  id: typeof parkTrackId | typeof harbourTrackId,
+  id: Exclude<KartTrackId, typeof kartTrackId>,
   name: string,
   blurb: string,
   difficulty: KartTrackDefinition["difficulty"],
@@ -61,15 +79,15 @@ const polyline = (
       segments: track.route.points.length - 1,
     },
     itemBoxes: track.itemBoxes.length,
-    features: features(track.course),
+    features: features(track.course, track),
     lapLimitMs: polylineTrackLimitMs,
   };
 };
 
-/** Every installed course, in menu order. All three are original layouts. */
+/** Every installed course, in menu order. All of them are original layouts. */
 export const kartTrackCatalogue: readonly KartTrackDefinition[] = z
   .array(kartTrackDefinitionSchema)
-  .length(3)
+  .length(kartTrackIds.length)
   .parse([
     {
       id: kartTrackId,
@@ -92,6 +110,24 @@ export const kartTrackCatalogue: readonly KartTrackDefinition[] = z
       "Harbour Hairpins",
       "A long dock straight into two tight hairpins, a chicane and a fast sweeper home.",
       "hard",
+    ),
+    polyline(
+      cityTrackId,
+      "Neon Blocks",
+      "Right angles round city blocks, sliding barriers and a building-site shortcut for boosters.",
+      "hard",
+    ),
+    polyline(
+      summitTrackId,
+      "Summit Switchback",
+      "Hairpins up the mountain, a jump over the top, rolling boulders and a narrow bridge.",
+      "hard",
+    ),
+    polyline(
+      beachTrackId,
+      "Sunset Strand",
+      "A long seafront loop with boost lanes, a dune jump and a boardwalk across the bay.",
+      "easy",
     ),
   ]);
 

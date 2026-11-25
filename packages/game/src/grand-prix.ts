@@ -2,6 +2,7 @@ import { z } from "zod";
 import { kartTrackId, type KartTrackId } from "./kart/kart-race-schema.ts";
 import { parkTrackId } from "./kart/kart-park.ts";
 import { harbourTrackId } from "./kart/kart-harbour.ts";
+import { beachTrackId, cityTrackId, summitTrackId } from "./kart/kart-track-ids.ts";
 import type { RaceResult } from "./protocol.ts";
 
 /** Points for first to eighth. Ninth and below, and racers who do not finish, score nothing. */
@@ -23,6 +24,28 @@ export const kartCups = [
     id: "reverse-cup",
     name: "Hairpin Cup",
     tracks: [harbourTrackId, kartTrackId, parkTrackId],
+  },
+  {
+    id: "coast-cup",
+    name: "Coast Cup",
+    tracks: [beachTrackId, parkTrackId, summitTrackId],
+  },
+  {
+    id: "neon-cup",
+    name: "Neon Cup",
+    tracks: [cityTrackId, summitTrackId, harbourTrackId],
+  },
+  {
+    id: "grand-tour",
+    name: "Grand Tour",
+    tracks: [
+      kartTrackId,
+      parkTrackId,
+      beachTrackId,
+      harbourTrackId,
+      cityTrackId,
+      summitTrackId,
+    ],
   },
 ] as const satisfies readonly KartCup[];
 export type KartCupId = (typeof kartCups)[number]["id"];

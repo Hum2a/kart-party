@@ -180,3 +180,9 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
 }
+
+.driver-emblem-glass {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+}

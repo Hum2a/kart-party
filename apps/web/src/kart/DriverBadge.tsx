@@ -111,4 +111,27 @@ const headgear: Record<DriverStyle, ReactElement> = {
       />
     </>
   ),
+  astronaut: (
+    <>
+      <circle cx="20" cy="22" r="15.5" className="driver-emblem-glass" />
+      <path d="M20 6.5V2" className="driver-emblem-line" />
+      <circle cx="20" cy="2.4" r="2" className="driver-emblem-highlight" />
+      <path d="M8 33h24" className="driver-emblem-band" />
+    </>
+  ),
+  champion: (
+    <>
+      <path d="M9 16q-1-6 4-9 1 4-2 7z" className="driver-emblem-highlight" />
+      <path d="M31 16q1-6-4-9-1 4 2 7z" className="driver-emblem-highlight" />
+      <path
+        d="M14 11.5q0-4 4-5.5 .5 3.5-2.5 5.5z"
+        className="driver-emblem-highlight"
+      />
+      <path
+        d="M26 11.5q0-4-4-5.5-.5 3.5 2.5 5.5z"
+        className="driver-emblem-highlight"
+      />
+      <path d="M10 14q10-6 20 0" className="driver-emblem-band" />
+    </>
+  ),
 };

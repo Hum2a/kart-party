@@ -22,6 +22,8 @@ import { ResultsTable } from "../race/ResultsTable";
 import { GrandPrixTable, Podium } from "../race/GrandPrixTable";
 import { RaceView, type RaceActions } from "../race/RaceView";
 import { PodiumStage } from "../race/PodiumStage";
+import { UnlockNotice } from "../unlocks/UnlockViews";
+import { useGrandPrixUnlocks } from "../unlocks/unlocks";
 import { podiumFromTable, podiumPlaces } from "../kart/podium";
 import {
   saveDriver,
@@ -121,7 +123,7 @@ function PracticeSetupForm({ onStart }: { onStart: (plan: PracticePlan) => void 
           </div>
           <h1 className="wordmark text-4xl sm:text-5xl">Practice</h1>
           <p className="text-muted">
-            A single race, a three-race Grand Prix, or a time trial against your ghost.
+            A single race, a Grand Prix cup, or a time trial against your ghost.
           </p>
         </div>
         {mode === "race" ? (
@@ -171,7 +173,7 @@ function PracticeSetupForm({ onStart }: { onStart: (plan: PracticePlan) => void 
           onChange={setMode}
           options={[
             { value: "race", label: "Single race" },
-            { value: "grandPrix", label: "Grand Prix", note: "3 races, points" },
+            { value: "grandPrix", label: "Grand Prix", note: "A cup of races, points" },
           ]}
         />
         <AnimatePresence mode="wait" initial={false}>
@@ -250,6 +252,16 @@ function PracticeRace({
   const cup = grandPrix ? kartCup(grandPrix.cupId) : undefined;
   const table = grandPrix ? grandPrixTable(grandPrix.races) : [];
   const finalRace = Boolean(grandPrix && grandPrixDone(grandPrix));
+  // A finished Grand Prix may unlock paints and drivers on this device.
+  const freshUnlocks = useGrandPrixUnlocks(
+    outcome && grandPrix && finalRace
+      ? {
+          key: `${grandPrix.cupId}:${outcome.results.map((row) => `${row.playerId}=${row.timeMs}`).join(",")}`,
+          cupId: grandPrix.cupId,
+          place: table.find((row) => row.playerId === practicePlayerId)?.place,
+        }
+      : null,
+  );
   // A finished cup gets its own theme and a fanfare.
   const celebrating = Boolean(outcome && finalRace);
   useMusic(celebrating ? "podium" : null);
@@ -367,6 +379,7 @@ function PracticeRace({
                 finalRace ? <Podium table={table} selfId={practicePlayerId} /> : null
               }
             />
+            <UnlockNotice ids={freshUnlocks} />
             {!grandPrix && outcome.best ? (
               <p
                 className={outcome.improved ? "font-bold text-highlight" : "text-muted"}

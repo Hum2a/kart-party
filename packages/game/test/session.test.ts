@@ -211,8 +211,9 @@ describe("phase 1 race options", () => {
 
 describe("kart paint", () => {
   it("names every paint and gives unchosen racers a varied default", () => {
-    expect(kartPaints).toHaveLength(8);
-    expect(new Set(kartPaints.map((p) => p.hex)).size).toBe(8);
+    // Eight to start with, three more earned from Grand Prix results.
+    expect(kartPaints).toHaveLength(11);
+    expect(new Set(kartPaints.map((p) => p.hex)).size).toBe(11);
     expect(defaultKartPaint(0)).not.toBe(defaultKartPaint(1));
     expect(defaultKartPaint(8)).toBe(defaultKartPaint(0));
     expect(kartPaintHex("lagoon")).toBe("#2fd4c4");
@@ -229,7 +230,7 @@ describe("kart paint", () => {
         type: "driver",
         requestId: "r",
         style: "dj",
-        paint: "gold",
+        paint: "plaid",
       }).success,
     ).toBe(false);
   });

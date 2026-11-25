@@ -16,6 +16,7 @@
     "preview": "npm run preview -w @kart-party/web",
     "deploy": "node scripts/deploy.mjs",
     "icons": "node scripts/make-icons.mjs",
+    "track-art": "node scripts/make-track-art.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:game": "npm run test -w @kart-party/game",

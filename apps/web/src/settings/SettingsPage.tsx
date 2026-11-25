@@ -10,6 +10,7 @@ import {
 } from "../anim/use-reduced-motion";
 import { promptInstall, useInstallState } from "../pwa/install";
 import { KeyBindings } from "./KeyBindings";
+import { UnlockList } from "../unlocks/UnlockViews";
 import { paintHex } from "./paint";
 import { resetSettings, updateSettings, useSettings } from "./settings";
 
@@ -262,6 +263,13 @@ export function SettingsPage() {
             </li>
           ))}
         </ul>
+      </Section>
+
+      <Section
+        title="Unlocks"
+        intro="Paints and drivers earned from Grand Prix results, kept on this device."
+      >
+        <UnlockList />
       </Section>
 
       <Section

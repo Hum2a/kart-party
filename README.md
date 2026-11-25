@@ -26,8 +26,8 @@ Drift, slipstream, glide off ramps, and throw items across three procedural trac
 
 ## Highlights
 
-- **Play Solo or Party Online** — Practise a single race, a three-race **Grand Prix**, or a **time trial against your own ghost** (`/practice`), or spin up a 4-letter online room (`/play`) for up to **8 human racers** plus CPU grid fillers, racing single races or a full Grand Prix.
-- **Tune Every Race** — `1–3` laps, `0–7` CPU rivals on **easy / normal / hard**, **50 / 100 / 150cc** engine classes, items **off / classic / all seven**, and eight named kart paints.
+- **Play Solo or Party Online** — Practise a single race, a **Grand Prix** cup, or a **time trial against your own ghost** (`/practice`), or spin up a 4-letter online room (`/play`) for up to **8 human racers** plus CPU grid fillers, racing single races or a full Grand Prix.
+- **Tune Every Race** — `1–3` laps, `0–7` CPU rivals on **easy / normal / hard**, **50 / 100 / 150cc** engine classes, items **off / classic / all seven**, and eight named kart paints, plus three paints and two drivers to earn from Grand Prix results.
 - **Rooms That Run Themselves** — A ready check before every race, rejoin mid-race after a refresh, late joiners and finished racers watching in 3D, quick reactions, a QR invite, and host tools to remove a racer, hand over the host or lock the room. Hosts can list a room on **quick play** so strangers can find it; the list shows codes and counts, never names.
 - **One Shared Rulebook** — Practice and online rooms both run every race through [`RaceSession`](packages/game/src/session.ts). No duplicated physics loops, lap counters, or scoring paths.
 - **Instant Feel + Authoritative Rooms** — Local client prediction makes steering feel immediate while the [`KartRoom`](apps/worker/src/room.ts) Durable Object ticks at **10 Hz**, persists state to SQLite KV before acknowledging actions, and cleans up idle rooms after 6 hours.
@@ -39,17 +39,20 @@ Drift, slipstream, glide off ramps, and throw items across three procedural trac
 
 ## Tracks
 
-All three courses are original layouts built from shared geometry that drives the 3D road mesh, minimap, surface detection, and swept wall boundaries alike.
+All six courses are original layouts built from shared geometry that drives the 3D road mesh, minimap, surface detection, and swept wall boundaries alike. The newer three add shortcuts that only pay off with a boost, an alternate route, boost lanes, jump pads, wide-swinging hazards and a narrow bridge, each with its own scenery and music.
 
 <div align="center">
-  <img src="docs/assets/tracks.svg" alt="Kart Party Tracks: Party Ring, Parkside, and Harbour Hairpins" width="100%" />
+  <img src="docs/assets/tracks.svg" alt="Kart Party tracks: Party Ring, Parkside, Harbour Hairpins, Neon Blocks, Summit Switchback and Sunset Strand" width="100%" />
 </div>
 
-| Track                | ID              | Difficulty | Layout                                                       | Lap Length | Item Boxes | Track Features              | Lap Cap |
-| :------------------- | :-------------- | :--------: | :----------------------------------------------------------- | :--------: | :--------: | :-------------------------- | :-----: |
-| **Party Ring**       | `party-ring-v1` |   `Easy`   | Banked circular loop (`128` segments)                        |   ~264 m   |     18     | 1 boost · 1 ramp · 1 hazard |  45 s   |
-| **Parkside**         | `parkside-v1`   |  `Medium`  | Wide straights, 40 m bends & S-curve (`72` segs)             |   ~659 m   |     18     | 1 boost · 1 ramp · 1 hazard |  180 s  |
-| **Harbour Hairpins** | `harbour-v1`    |   `Hard`   | Dock straight, twin hairpins, chicane & sweeper (`125` segs) |   ~947 m   |     21     | 1 boost · 1 ramp · 1 hazard |  180 s  |
+| Track                 | ID              | Difficulty | Layout                                                       | Lap Length | Item Boxes | Track Features                                                 | Lap Cap |
+| :-------------------- | :-------------- | :--------: | :----------------------------------------------------------- | :--------: | :--------: | :------------------------------------------------------------- | :-----: |
+| **Party Ring**        | `party-ring-v1` |   `Easy`   | Banked circular loop (`128` segments)                        |   ~264 m   |     18     | 1 boost · 1 ramp · 1 hazard                                    |  45 s   |
+| **Parkside**          | `parkside-v1`   |  `Medium`  | Wide straights, 40 m bends & S-curve (`72` segs)             |   ~659 m   |     18     | 1 boost · 1 ramp · 1 hazard                                    |  180 s  |
+| **Harbour Hairpins**  | `harbour-v1`    |   `Hard`   | Dock straight, twin hairpins, chicane & sweeper (`125` segs) |   ~947 m   |     21     | 1 boost · 1 ramp · 1 hazard                                    |  180 s  |
+| **Neon Blocks**       | `city-v1`       |   `Hard`   | Right angles round city blocks (`111` segs)                  |   ~823 m   |     21     | 2 boosts · 1 ramp · 3 sliding barriers · gravel shortcut       |  180 s  |
+| **Summit Switchback** | `summit-v1`     |   `Hard`   | Two hairpins up, a long descent over a bridge (`256` segs)   |   ~918 m   |     18     | 2 boosts · 2 jump pads · 2 boulders · bridge · gravel shortcut |  180 s  |
+| **Sunset Strand**     | `beach-v1`      |   `Easy`   | Long seafront loop round a headland (`153` segs)             |  ~1143 m   |     24     | 3 boost lanes · 1 dune jump · boardwalk with a crab            |  180 s  |
 
 ---
 
@@ -72,14 +75,14 @@ All three courses are original layouts built from shared geometry that drives th
 <details>
 <summary><strong>Modes &amp; Progression</strong> — Grand Prix cups, ghost time trials, engine classes &amp; records</summary>
 
-| Mode / Option      | How it Works                                                                                                                    |
-| :----------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| **Single race**    | One race on any track, solo or online                                                                                           |
-| **Grand Prix**     | Three races in cup order (**Starter Cup**, **Hairpin Cup**) scoring `15-12-10-8-6-4-2-1`; ties split on countback; final podium |
-| **Time trial**     | Practice with `0` CPU rivals races a ghost of your best run, with a split at every lap; a new best saves a new ghost            |
-| **Engine class**   | `50cc` (`0.82×` top speed), `100cc` (default), `150cc` (`1.16×`); power scales with the cube so grip and turning stay the same  |
-| **CPU difficulty** | **Easy** `0.82×`, **Normal** `1×`, **Hard** `1.12×` pace on each CPU's personal skill                                           |
-| **Records**        | Best race and best single lap per track, lap count and engine class, saved in this browser                                      |
+| Mode / Option      | How it Works                                                                                                                                                                   |
+| :----------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Single race**    | One race on any track, solo or online                                                                                                                                          |
+| **Grand Prix**     | Races in cup order (**Starter**, **Hairpin**, **Coast** and **Neon** cups, or the six-race **Grand Tour**) scoring `15-12-10-8-6-4-2-1`; ties split on countback; final podium |
+| **Time trial**     | Practice with `0` CPU rivals races a ghost of your best run, with a split at every lap; a new best saves a new ghost                                                           |
+| **Engine class**   | `50cc` (`0.82×` top speed), `100cc` (default), `150cc` (`1.16×`); power scales with the cube so grip and turning stay the same                                                 |
+| **CPU difficulty** | **Easy** `0.82×`, **Normal** `1×`, **Hard** `1.12×` pace on each CPU's personal skill                                                                                          |
+| **Records**        | Best race and best single lap per track, lap count and engine class, saved in this browser                                                                                     |
 
 </details>
 

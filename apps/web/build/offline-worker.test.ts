@@ -17,7 +17,8 @@ describe("offline worker", () => {
 
   it("lists the client build and public files, and versions the cache by them", () => {
     // Tests run from apps/web.
-    const publicDir = resolve(process.cwd(), "public");
+    // Relative to this file, so the test passes from any working folder.
+    const publicDir = resolve(import.meta.dirname, "../public");
     const plugin = offlineWorker(publicDir);
     const emitted: { fileName: string; source: string }[] = [];
     const run = (files: string[]) => {

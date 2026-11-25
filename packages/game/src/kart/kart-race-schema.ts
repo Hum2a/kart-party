@@ -8,6 +8,7 @@ import { kartPresentationSchema } from "./kart-events.ts";
 import { parkTrackId } from "./kart-park.ts";
 import { kartPowerViewSchema } from "./kart-powers.ts";
 import { harbourTrackId } from "./kart-harbour.ts";
+import { beachTrackId, cityTrackId, summitTrackId } from "./kart-track-ids.ts";
 import { polylineTrackLimitMs } from "./kart-route.ts";
 import { kartSettingsSchema } from "./kart-settings.ts";
 import { kartSpectatorSchema } from "./kart-spectator.ts";
@@ -31,7 +32,12 @@ export const kartOpenRaceMs = kartMaxLimitMs;
 export const isOpenKartRace = (race: { timeLimitMs: number }) =>
   race.timeLimitMs >= kartOpenRaceMs;
 export type KartTrackId =
-  typeof kartTrackId | typeof parkTrackId | typeof harbourTrackId;
+  | typeof kartTrackId
+  | typeof parkTrackId
+  | typeof harbourTrackId
+  | typeof cityTrackId
+  | typeof summitTrackId
+  | typeof beachTrackId;
 /** Optional host presentation choice; absence preserves the legacy renderer. */
 export const kartLookNameSchema = z.enum([
   "off",
@@ -96,7 +102,14 @@ export const kartRaceSchema = z
     timingMode: z.literal("device-v1").optional(),
     rollback: kartRollbackSchema.optional(),
     raceId: z.string(),
-    trackId: z.enum([kartTrackId, parkTrackId, harbourTrackId]),
+    trackId: z.enum([
+      kartTrackId,
+      parkTrackId,
+      harbourTrackId,
+      cityTrackId,
+      summitTrackId,
+      beachTrackId,
+    ]),
     timeLimitMs: z.number().int().positive().max(kartMaxLimitMs),
     elapsedMs: z.number().int().min(0).max(kartMaxLimitMs),
     /** Present for races of more than one lap. */

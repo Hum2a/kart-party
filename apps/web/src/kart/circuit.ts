@@ -16,6 +16,7 @@ import { createNativeKartVfx } from "./vfx-renderer";
 import type { KartVfxPreset, KartVfxKind } from "@kart-party/game";
 import type { GraphicsTier } from "./graphics";
 import { paintHex } from "../settings/paint";
+import { dressTrack } from "./track-dressing";
 
 type Palette = Record<
   "ground" | "road" | "accent" | "highlight" | "ink" | "muted",
@@ -278,13 +279,25 @@ export function createCircuit(
         Math.hypot(wall.bx - wall.ax, wall.bz - wall.az),
       );
     });
-    const spots = trackside(poly, 14);
-    const trees = batch(crowns.geometry, bright, spots.length),
-      stems = batch(trunks.geometry, dark, spots.length);
-    spots.forEach(([x, z], i) => {
-      place(trees, i, x, 4, z);
-      place(stems, i, x, 1, z);
+    const scenery = dressTrack(poly, {
+      palette,
+      materials: { surface, bright, second, text, dark, quiet },
+      mat,
+      geo,
+      mesh,
+      batch,
+      place,
+      bounds: { minX: minX + 50, maxX: maxX - 50, minZ: minZ + 50, maxZ: maxZ - 50 },
     });
+    if (scenery === "trees") {
+      const spots = trackside(poly, 14);
+      const trees = batch(crowns.geometry, bright, spots.length),
+        stems = batch(trunks.geometry, dark, spots.length);
+      spots.forEach(([x, z], i) => {
+        place(trees, i, x, 4, z);
+        place(stems, i, x, 1, z);
+      });
+    }
     const columns = Math.round(poly.halfWidth),
       finishLight = batch(checkGeo, text, columns),
       finishDark = batch(checkGeo, dark, columns);
@@ -777,7 +790,9 @@ export function createCircuit(
             charge: driver.driftLevel ?? driver.driftCharge * 3,
             status: driver.status,
             surface: poly
-              ? poly.surfaceAt(pose.x, pose.z)
+              ? poly.surfaceAt(pose.x, pose.z) === "road"
+                ? "road"
+                : "dirt"
               : Math.abs(Math.hypot(pose.x, pose.z) - 42) > 8
                 ? "dirt"
                 : "road",

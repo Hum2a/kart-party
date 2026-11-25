@@ -1,5 +1,6 @@
 import { polylineTrack, type KartTrackId } from "@kart-party/game";
 import { mapX, mapZ } from "../kart/navigation";
+import { BranchPaths } from "../kart/BranchPaths";
 
 /** A small, static drawing of a course for menus. Purely decorative text-wise. */
 export function TrackPreview({
@@ -16,6 +17,7 @@ export function TrackPreview({
     <svg viewBox="-58 -58 116 116" className={className} aria-hidden="true">
       {course ? (
         <>
+          <BranchPaths trackId={trackId} strokeWidth={1} />
           <path
             d={(["left", "right"] as const)
               .map(

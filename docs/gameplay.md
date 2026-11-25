@@ -23,6 +23,7 @@ Simulation advances in bounded **`≤ 20 ms`** steps (`stepDriving`) against a s
 
 - **Off-Road Sand (`sandSlowdown`)**: Engine scales to `0.80×` with `0.30` speed drag (retains roughly 60% of road top speed) and pauses drift charging.
 - **Item Slowdown (`itemSlowdown`)**: Engine scales to `0.58×` with `1.10` speed drag (`1,600 ms` duration on hit).
+- **Shortcut Gravel (`gravelSlowdown`)**: Engine scales to `0.55×` with `1.00` speed drag, so an unboosted kart bogs down to about a quarter of road speed. A boost multiplies the engine as usual, so a Turbo, a Treat or a drift boost carries a kart across at speed. `surfaceSlowdown` maps the ground (road, dirt or gravel) to the right slowdown for both the room and the phone's prediction.
 - **Wall Contact**: Swept bounce/slide clears active drift charge and active boost; in `bounce-v1` handling mode, hard wall impacts (`≥ 4 m/s`) add `0.22` restitution and a `180 ms` stun (`600 ms` impact cooldown).
 
 ---
@@ -60,18 +61,34 @@ Karts remain ghosts to one another, so drafting is the primary pack-racing inter
 ### Course Features (`kart-course.ts`)
 
 - **Boost Pad**: Grants a `900 ms` Tier-2 boost (`1,000 ms` feature cooldown).
+- **Boost Lane**: A boost pad longer than `8 m` (`boostLaneLength`). Its cooldown is `300 ms`, so it keeps topping the boost up while you stay on it.
 - **Glider Ramp**: Launches kart upward (`verticalSpeed = min(6, 2 + speed * 0.1)`). Holding throttle glides at `3.8` gravity; braking folds the glider to descend at `12` gravity.
-- **Moving Hazard**: Smoothly oscillates `±1.5 m` laterally via `sin(courseMs / 900)`; hitting one cuts velocity to `45%` and clears active drift/boost (`1,500 ms` cooldown).
+- **Jump Pad**: A ramp with a `lift` above `1`; launch speed and its cap both scale by `lift` (the summit's pad is `1.6`).
+- **Moving Hazard**: Smoothly oscillates laterally via `sin(courseMs / swayMs) × sway` (default `±1.5 m`, `900`; the city barriers and summit boulders swing `±6 m`); hitting one cuts velocity to `45%` and clears active drift/boost (`1,500 ms` cooldown).
 
 ---
 
 ## 3. Track Catalogue (`kart-tracks.ts`)
 
-| Track                | ID              | Difficulty |              Route Kind               |  Length   | Segments |      Item Boxes      | Features                        | Lap Limit |
-| :------------------- | :-------------- | :--------: | :-----------------------------------: | :-------: | :------: | :------------------: | :------------------------------ | :-------: |
-| **Party Ring**       | `party-ring-v1` |    Easy    | `ring` (`r = 42 m`, `34–50 m` bounds) | `263.9 m` |  `128`   | `18` (`6 × 3` lanes) | `1` boost, `1` ramp, `1` hazard |  `45 s`   |
-| **Parkside**         | `parkside-v1`   |   Medium   |    `polyline` (`±12 m` half-width)    | `658.9 m` |   `72`   |         `18`         | `1` boost, `1` ramp, `1` hazard |  `180 s`  |
-| **Harbour Hairpins** | `harbour-v1`    |    Hard    |    `polyline` (`±11 m` half-width)    | `946.6 m` |  `125`   | `21` (`7` stations)  | `1` boost, `1` ramp, `1` hazard |  `180 s`  |
+| Track                 | ID              | Difficulty |              Route Kind               |   Length   | Segments |      Item Boxes      | Features                                                     | Lap Limit |
+| :-------------------- | :-------------- | :--------: | :-----------------------------------: | :--------: | :------: | :------------------: | :----------------------------------------------------------- | :-------: |
+| **Party Ring**        | `party-ring-v1` |    Easy    | `ring` (`r = 42 m`, `34–50 m` bounds) | `263.9 m`  |  `128`   | `18` (`6 × 3` lanes) | `1` boost, `1` ramp, `1` hazard                              |  `45 s`   |
+| **Parkside**          | `parkside-v1`   |   Medium   |    `polyline` (`±12 m` half-width)    | `658.9 m`  |   `72`   |         `18`         | `1` boost, `1` ramp, `1` hazard                              |  `180 s`  |
+| **Harbour Hairpins**  | `harbour-v1`    |    Hard    |    `polyline` (`±11 m` half-width)    | `946.6 m`  |  `125`   | `21` (`7` stations)  | `1` boost, `1` ramp, `1` hazard                              |  `180 s`  |
+| **Neon Blocks**       | `city-v1`       |    Hard    |    `polyline` (`±10 m` half-width)    | `822.5 m`  |  `111`   | `21` (`7` stations)  | `2` boosts, `1` ramp, `3` sliding barriers, shortcut         |  `180 s`  |
+| **Summit Switchback** | `summit-v1`     |    Hard    |  `polyline` (`±10 m`, bridge `±5 m`)  | `918.0 m`  |  `256`   |         `18`         | `2` boosts, `2` jump pads, `2` boulders, bridge, shortcut    |  `180 s`  |
+| **Sunset Strand**     | `beach-v1`      |    Easy    |    `polyline` (`±12 m` half-width)    | `1143.1 m` |  `153`   | `24` (`8` stations)  | `3` boost lanes, `1` dune jump, `2` hazards, alternate route |  `180 s`  |
+
+The new courses are built from corner points by `roundedCentreline` (each corner becomes an arc of its radius), so a layout reads like a street plan.
+
+### Shortcuts and Alternate Routes (`kart-polyline.ts`)
+
+A branch is a second way between two points on the lap, with its own walls; the main barrier opens where it leaves and rejoins.
+
+- **Shortcut** (gravel): **Building site** on Neon Blocks (`56.6 m` instead of `72.2 m` of road) and **Goat track** on Summit Switchback (`63.6 m` instead of `82.2 m`). Without a boost the gravel bogs you down and the road is quicker; with a Turbo, a Treat or a drift boost the shortcut wins. A test drives both lines to prove it.
+- **Alternate route** (road): the **Boardwalk** across the bay on Sunset Strand, `215 m` against `287 m` round the headland. It is narrow and has a crab on it; the headland has a boost lane.
+- **Lap progress**: a branch maps its own length onto the stretch of lap it replaces, and eases from the main road's reading over `8 m` as a kart leaves the road, so the ordered lap gates accept a branch exactly as they accept the road. CPU racers keep to the main road.
+- **Item boxes**: the race view carries at most `24`, so no course may have more.
 
 ---
 
@@ -134,10 +151,23 @@ Top speed is where power meets drag, so scaling power by the cube moves top spee
 
 ### Grand Prix (`grand-prix.ts`)
 
-- Cups: **Starter Cup** (Party Ring → Parkside → Harbour Hairpins) and **Hairpin Cup** (Harbour Hairpins → Party Ring → Parkside).
+- Cups: **Starter Cup** (Party Ring → Parkside → Harbour Hairpins), **Hairpin Cup** (Harbour Hairpins → Party Ring → Parkside), **Coast Cup** (Sunset Strand → Parkside → Summit Switchback), **Neon Cup** (Neon Blocks → Summit Switchback → Harbour Hairpins) and the six-race **Grand Tour** (every track).
 - Points by finishing place: `15, 12, 10, 8, 6, 4, 2, 1`; ninth and below, and DNFs, score `0`.
 - Ties on points split by most wins, then most seconds, and so on; a tie that survives every place stays tied.
 - A racer who joins mid-cup shows `–` for races they missed.
+
+### Cosmetic Unlocks (`kart-unlocks.ts`, `apps/web/src/unlocks`)
+
+Finishing a Grand Prix earns paints and drivers. They change how a kart looks and nothing else.
+
+| Unlock                               | How                                  |
+| :----------------------------------- | :----------------------------------- |
+| Copper paint                         | Finish any Grand Prix                |
+| Racing green paint, Astronaut driver | Finish a Grand Prix in the top three |
+| Gold paint                           | Win a Grand Prix                     |
+| Champion driver                      | Win the Grand Tour                   |
+
+Unlocks are kept on the device that earned them (`kart-party-unlocks` in local storage), like the settings. There are no accounts, so the room accepts any paint or driver a phone sends; the pickers simply show locked ones greyed out with how to earn them, and racers who have not chosen are only ever given the starter paints and drivers. The final results show what a Grand Prix newly unlocked, and the settings page lists them all.
 
 ### Ghosts & Records (`ghost.ts`, `apps/web/src/practice/records.ts`)
 

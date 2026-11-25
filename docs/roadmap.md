@@ -30,59 +30,59 @@ Status key:
 - **Planned**: listed in a phase below.
 - **Not carried**: deliberately left out (see above).
 
-| ID  | Upstream feature                               | Kart Party                                                                                              | Phase |
-| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----- |
-| K01 | Circuit and kart models                        | Original procedural tracks and karts. Upstream models not carried                                       | done  |
-| K02 | Wheel spin, steering, ground-following chassis | Done: procedural kart roll and steering pose                                                            | done  |
-| K03 | Animated driver variants                       | Done: six driver styles with lean, look-back and wave                                                   | done  |
-| K04 | Hop, lean and slip pose                        | Done                                                                                                    | done  |
-| K05 | Drift charge, three boost tiers                | Done, room-authoritative                                                                                | done  |
-| K06 | Chase camera with boost response               | Done                                                                                                    | done  |
-| K07 | Dirt and tyre dust                             | Built; switch on                                                                                        | 1     |
-| K08 | Exhaust smoke                                  | Built; switch on                                                                                        | 1     |
-| K09 | Drift sparks and glow bursts                   | Sparks done; glow bursts built                                                                          | 1     |
-| K10 | Rear-wheel glow                                | Built; switch on                                                                                        | 1     |
-| K11 | Drift arcs                                     | Built; switch on                                                                                        | 1     |
-| K12 | Boost trails                                   | Built; switch on                                                                                        | 1     |
-| K13 | Boost flames                                   | Built; switch on                                                                                        | 1     |
-| K14 | Skid marks                                     | Done: pooled, surface-aligned marks from drifting rear wheels that fade after 4 s                       | done  |
-| K15 | Confetti                                       | Built; switch on for finishes and podium                                                                | 1     |
-| K16 | Shared VFX emitter                             | Done (bounded, pooled)                                                                                  | done  |
-| K17 | VFX authoring bench                            | Planned as a dev-only page                                                                              | 7     |
-| K18 | Gradient sky, sun, horizon                     | Built in the look presets; switch on                                                                    | 1     |
-| K19 | Environment lighting                           | Built in the look presets; switch on                                                                    | 1     |
-| K20 | Following shadows                              | Done: a soft disc under every kart, one draw call; Auto turns it off at low detail                      | done  |
-| K21 | Colour grading                                 | Built; switch on                                                                                        | 1     |
-| K22 | Boost wind lines, chromatic response           | Built; switch on at higher graphics                                                                     | 1     |
-| K23 | Lens dirt                                      | Built; off by default                                                                                   | 1     |
-| K24 | Bloom                                          | Built; quality-gated                                                                                    | 1     |
-| K25 | AO and tilt-shift                              | Built; off by default                                                                                   | 1     |
-| K26 | Static scenery collision                       | Done (swept walls)                                                                                      | done  |
-| K27 | Collision bounce and stun                      | Done (bounce profile)                                                                                   | done  |
-| K28 | Touch steering and buttons                     | Done                                                                                                    | done  |
-| K29 | Keyboard and gamepad                           | Done                                                                                                    | done  |
-| K30 | Mouse steering                                 | Done (opt-in)                                                                                           | done  |
-| K31 | Item and recovery shortcuts                    | Done (E, R, X, Y)                                                                                       | done  |
-| K32 | Loading, progress, retry                       | Done                                                                                                    | done  |
-| K33 | Ready check and 3-2-1-GO                       | Done: everyone but the host ticks ready before the host can start; readiness clears each race           | done  |
-| K34 | Race HUD and results                           | Done: results open on a 3D podium of the top three, waving, under confetti                              | done  |
-| K35 | Time-trial mode                                | Done: time trial (no CPUs) races your saved ghost with lap splits                                       | done  |
-| K36 | Best laps and records                          | Done: best race and best lap per track, laps and engine class; ghost saved on a new best                | done  |
-| K37 | Minimap and navigation                         | Done                                                                                                    | done  |
-| K38 | Multiplayer with visible opponents             | Done (rooms of 8, nearby karts)                                                                         | done  |
-| K39 | Spectator cameras                              | Done: late joiners and finished racers follow any kart in 3D, or watch an overview                      | done  |
-| K40 | Item boxes, turbo, shield, oil                 | Done                                                                                                    | done  |
-| K41 | Tennis-ball projectile                         | Built; switch on                                                                                        | 1     |
-| K42 | Bomb                                           | Built; switch on                                                                                        | 1     |
-| K43 | Homing projectile                              | Built (Homing bolt); switch on                                                                          | 1     |
-| K44 | Treats                                         | Built (Treats boost); switch on                                                                         | 1     |
-| K45 | More tracks                                    | Three originals; more planned                                                                           | 6     |
-| K46 | Mode menus, tutorial, controls help            | Done: a six-step driving school, and a settings page with key remapping                                 | done  |
-| K47 | Sound effects and music                        | Done: synthesised soundtrack (menu, three tracks, podium) and 30 effects, with music and effects volume | done  |
-| K48 | Installable, offline practice                  | Done: installable app; practice and the driving school work offline                                     | done  |
-| K49 | Preload, performance, lifecycle                | Done (adaptive graphics, lazy engine)                                                                   | done  |
-| K50 | Debug tools                                    | Planned as dev-only overlays                                                                            | 7     |
-| K51 | Dependencies and attribution                   | Done (notices kept)                                                                                     | done  |
+| ID  | Upstream feature                               | Kart Party                                                                                            | Phase |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----- |
+| K01 | Circuit and kart models                        | Original procedural tracks and karts. Upstream models not carried                                     | done  |
+| K02 | Wheel spin, steering, ground-following chassis | Done: procedural kart roll and steering pose                                                          | done  |
+| K03 | Animated driver variants                       | Done: six driver styles with lean, look-back and wave                                                 | done  |
+| K04 | Hop, lean and slip pose                        | Done                                                                                                  | done  |
+| K05 | Drift charge, three boost tiers                | Done, room-authoritative                                                                              | done  |
+| K06 | Chase camera with boost response               | Done                                                                                                  | done  |
+| K07 | Dirt and tyre dust                             | Built; switch on                                                                                      | 1     |
+| K08 | Exhaust smoke                                  | Built; switch on                                                                                      | 1     |
+| K09 | Drift sparks and glow bursts                   | Sparks done; glow bursts built                                                                        | 1     |
+| K10 | Rear-wheel glow                                | Built; switch on                                                                                      | 1     |
+| K11 | Drift arcs                                     | Built; switch on                                                                                      | 1     |
+| K12 | Boost trails                                   | Built; switch on                                                                                      | 1     |
+| K13 | Boost flames                                   | Built; switch on                                                                                      | 1     |
+| K14 | Skid marks                                     | Done: pooled, surface-aligned marks from drifting rear wheels that fade after 4 s                     | done  |
+| K15 | Confetti                                       | Built; switch on for finishes and podium                                                              | 1     |
+| K16 | Shared VFX emitter                             | Done (bounded, pooled)                                                                                | done  |
+| K17 | VFX authoring bench                            | Planned as a dev-only page                                                                            | 7     |
+| K18 | Gradient sky, sun, horizon                     | Built in the look presets; switch on                                                                  | 1     |
+| K19 | Environment lighting                           | Built in the look presets; switch on                                                                  | 1     |
+| K20 | Following shadows                              | Done: a soft disc under every kart, one draw call; Auto turns it off at low detail                    | done  |
+| K21 | Colour grading                                 | Built; switch on                                                                                      | 1     |
+| K22 | Boost wind lines, chromatic response           | Built; switch on at higher graphics                                                                   | 1     |
+| K23 | Lens dirt                                      | Built; off by default                                                                                 | 1     |
+| K24 | Bloom                                          | Built; quality-gated                                                                                  | 1     |
+| K25 | AO and tilt-shift                              | Built; off by default                                                                                 | 1     |
+| K26 | Static scenery collision                       | Done (swept walls)                                                                                    | done  |
+| K27 | Collision bounce and stun                      | Done (bounce profile)                                                                                 | done  |
+| K28 | Touch steering and buttons                     | Done                                                                                                  | done  |
+| K29 | Keyboard and gamepad                           | Done                                                                                                  | done  |
+| K30 | Mouse steering                                 | Done (opt-in)                                                                                         | done  |
+| K31 | Item and recovery shortcuts                    | Done (E, R, X, Y)                                                                                     | done  |
+| K32 | Loading, progress, retry                       | Done                                                                                                  | done  |
+| K33 | Ready check and 3-2-1-GO                       | Done: everyone but the host ticks ready before the host can start; readiness clears each race         | done  |
+| K34 | Race HUD and results                           | Done: results open on a 3D podium of the top three, waving, under confetti                            | done  |
+| K35 | Time-trial mode                                | Done: time trial (no CPUs) races your saved ghost with lap splits                                     | done  |
+| K36 | Best laps and records                          | Done: best race and best lap per track, laps and engine class; ghost saved on a new best              | done  |
+| K37 | Minimap and navigation                         | Done                                                                                                  | done  |
+| K38 | Multiplayer with visible opponents             | Done (rooms of 8, nearby karts)                                                                       | done  |
+| K39 | Spectator cameras                              | Done: late joiners and finished racers follow any kart in 3D, or watch an overview                    | done  |
+| K40 | Item boxes, turbo, shield, oil                 | Done                                                                                                  | done  |
+| K41 | Tennis-ball projectile                         | Built; switch on                                                                                      | 1     |
+| K42 | Bomb                                           | Built; switch on                                                                                      | 1     |
+| K43 | Homing projectile                              | Built (Homing bolt); switch on                                                                        | 1     |
+| K44 | Treats                                         | Built (Treats boost); switch on                                                                       | 1     |
+| K45 | More tracks                                    | Done: six originals, with shortcuts, an alternate route, boost lanes, jump pads and a bridge          | done  |
+| K46 | Mode menus, tutorial, controls help            | Done: a six-step driving school, and a settings page with key remapping                               | done  |
+| K47 | Sound effects and music                        | Done: synthesised soundtrack (menu, six tracks, podium) and 30 effects, with music and effects volume | done  |
+| K48 | Installable, offline practice                  | Done: installable app; practice and the driving school work offline                                   | done  |
+| K49 | Preload, performance, lifecycle                | Done (adaptive graphics, lazy engine)                                                                 | done  |
+| K50 | Debug tools                                    | Planned as dev-only overlays                                                                          | 7     |
+| K51 | Dependencies and attribution                   | Done (notices kept)                                                                                   | done  |
 
 ## Phases
 
@@ -148,13 +148,28 @@ scene of its own, loaded with the results. The offline worker is generated at bu
 from the build's own file list, and pages load from the network first, so an online visit
 always gets the latest version.
 
-### Phase 6: content
+### Phase 6: content (done)
 
 - At least three more original tracks, each with a strong identity: tight city
   blocks, a mountain switchback with ramps, and a long beach loop with boost lanes.
 - Shortcuts that need a boost or a Treat to make, and alternate routes.
 - More course features: boost lanes, jump pads, moving hazards and narrow bridges.
 - Cosmetic unlocks earned from Grand Prix results: new paints and driver styles.
+
+Notes from building it: the three new courses (Neon Blocks, Summit Switchback, Sunset
+Strand) are drawn from corner points that become arcs, and each has its own scenery
+(towers, pines and peaks, palms and sea) and music. A shortcut is gravel that bogs an
+unboosted kart down, so it only pays off with a boost; a test drives both lines to prove
+it. Branch progress eases in from the main road so the existing lap gates accept it
+unchanged. Unlocks are kept on the device, as there are no accounts. Two more cups and a
+six-race Grand Tour use the new tracks.
+
+Found while testing, and left for its own change: in phone-timed races the room steps its
+own copy of each kart from controls sent about ten times a second, while the phone
+simulates every change. The copies can drift apart, and the room's copy can get stuck on a
+barrier. Finish times still come from the phone, but the sector and wrong-way messages,
+item pickups and what other racers see follow the room's copy. The fix is for the phone
+to report its pose and the room to adopt it within plausible bounds.
 
 ### Phase 7: depth and tooling
 

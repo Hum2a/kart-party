@@ -191,6 +191,7 @@ export function createNativeDriverRig(
   // Shared shapes keep the geometry budget small.
   // Closed domes sit just above the face, so nothing shows through them.
   const smallDome = openDome(THREE, 0.38, Math.PI / 2, 0);
+  const knob = new THREE.SphereGeometry(0.08, 6, 4);
   const eyewear = new THREE.BoxGeometry(0.12, 0.15, 0.52);
   const racer = ["racer"] as const;
   add(
@@ -220,14 +221,7 @@ export function createNativeDriverRig(
     "second",
     party,
   );
-  add(
-    new THREE.SphereGeometry(0.08, 6, 4),
-    head,
-    [-0.04, 0.95, 0],
-    [0, 0, 0],
-    "ground",
-    party,
-  );
+  add(knob, head, [-0.04, 0.95, 0], [0, 0, 0], "ground", party);
   const royal = ["royal"] as const;
   add(
     new THREE.CylinderGeometry(0.3, 0.28, 0.16, 10, 1, true),
@@ -283,6 +277,29 @@ export function createNativeDriverRig(
     bandit,
   );
   add(eyewear, head, [0.36, 0.19, 0], [0, 0, 0], "ink", bandit, true);
+  const astronaut = ["astronaut"] as const;
+  // A big bubble helmet, open at the front so the face shows, and an aerial.
+  add(
+    openDome(THREE, 0.56, Math.PI * 0.78, 1.9),
+    head,
+    [0, 0.02, 0],
+    [0, 0, 0],
+    "ink",
+    astronaut,
+  );
+  // The aerial reuses the crown's spike and the party hat's bobble.
+  add(spike, head, [-0.12, 0.66, 0], [0, 0, 0], "ink", astronaut);
+  add(knob, head, [-0.12, 0.8, 0], [0, 0, 0], "second", astronaut);
+  const champion = ["champion"] as const;
+  // A laurel ring round the head, open over the face.
+  add(
+    new THREE.TorusGeometry(0.4, 0.07, 5, 14, Math.PI * 1.6),
+    head,
+    [0, 0.3, 0],
+    [Math.PI / 2, 0, Math.PI * 0.2],
+    "second",
+    champion,
+  );
 
   // Face photos: one disc per driver that has one, on the front of the head.
   const faceGeometry = geo(new THREE.CircleGeometry(0.29, 20));

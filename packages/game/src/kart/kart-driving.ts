@@ -119,11 +119,19 @@ export const driftThresholds = [700, 1400, 2400] as const;
  * How rough ground slows a kart. `"sand"` is off the road (sand and dirt): it
  * keeps about 60% of road top speed, so a wide line costs time without a crawl.
  * `true` is an item slowdown (an oil slick or a hit) and keeps the heavier
- * penalty. Either one stops a drift from charging.
+ * penalty. `"gravel"` is a shortcut's loose ground: it bogs an unboosted kart
+ * down to a crawl, but a boost's extra thrust carries it across at speed.
+ * Any of them stops a drift from charging.
  */
-export type DrivingSlowdown = boolean | "sand";
+export type DrivingSlowdown = boolean | "sand" | "gravel";
 export const sandSlowdown = { engineScale: 0.8, speedDrag: 0.3 } as const;
+export const gravelSlowdown = { engineScale: 0.55, speedDrag: 1 } as const;
 export const itemSlowdown = { engineScale: 0.58, speedDrag: 1.1 } as const;
+/** The slowdown for the ground a kart is on: road is none, a shortcut is gravel, the rest sand. */
+export const surfaceSlowdown = (
+  surface: "road" | "dirt" | "gravel",
+): DrivingSlowdown =>
+  surface === "road" ? false : surface === "gravel" ? "gravel" : "sand";
 
 /** First contact with a segment expanded by the kart radius, including round ends. */
 function sweep(
@@ -245,7 +253,12 @@ export function stepDriving(
 ): DrivingBody {
   if (!Number.isFinite(ms) || ms <= 0 || ms > 20) return body;
   const offRoad = slowdown !== false;
-  const rough = slowdown === "sand" ? sandSlowdown : itemSlowdown;
+  const rough =
+    slowdown === "sand"
+      ? sandSlowdown
+      : slowdown === "gravel"
+        ? gravelSlowdown
+        : itemSlowdown;
   const dt = ms / 1000,
     next = { ...body, offRoad };
   if (handling === "bounce-v1") {

@@ -9,6 +9,7 @@ import {
 } from "@kart-party/game";
 import { mapHeadingPath, nextMapSector, mapX, mapZ } from "./navigation";
 import { KartProjectileLayer } from "./KartProjectileLayer";
+import { BranchPaths } from "./BranchPaths";
 
 /** SVG broadcast map: every public pose, only the leading three numbered to avoid 50 overlapping labels. */
 export function KartMap({
@@ -64,19 +65,22 @@ export function KartMap({
       }
     >
       {course ? (
-        <path
-          data-track-road={course.id}
-          d={(["left", "right"] as const)
-            .map(
-              (side) =>
-                `M${course.ribbon.map((edge) => `${px(edge[side][0])} ${pz(edge[side][1])}`).join("L")}Z`,
-            )
-            .join(" ")}
-          fill="var(--surface)"
-          fillRule="evenodd"
-          stroke="var(--accent)"
-          strokeWidth="0.5"
-        />
+        <>
+          <BranchPaths trackId={race.trackId} />
+          <path
+            data-track-road={course.id}
+            d={(["left", "right"] as const)
+              .map(
+                (side) =>
+                  `M${course.ribbon.map((edge) => `${px(edge[side][0])} ${pz(edge[side][1])}`).join("L")}Z`,
+              )
+              .join(" ")}
+            fill="var(--surface)"
+            fillRule="evenodd"
+            stroke="var(--accent)"
+            strokeWidth="0.5"
+          />
+        </>
       ) : (
         <>
           <circle r="59" className="kart-map-orbit" />

@@ -15,6 +15,11 @@ export const colourSafePaint: Record<KartPaint, string> = {
   sky: "#0072b2",
   bubblegum: "#cc79a7",
   snow: "#f2f0ff",
+  // The earned paints differ from the set above by lightness as well as hue
+  // (from the colour-blind-safe brown–teal ColorBrewer scale).
+  copper: "#8c510a",
+  racing: "#01665e",
+  gold: "#dfc27d",
 };
 
 export function paintHex(

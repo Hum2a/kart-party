@@ -1,6 +1,7 @@
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { reloadSettings } from "../src/settings/settings";
+import { reloadUnlocks } from "../src/unlocks/unlocks";
 
 function installBrowserStubs(): void {
   // Motion measures layout with scroll restoration; jsdom has no viewport scroll.
@@ -97,6 +98,7 @@ afterEach(() => {
   // Settings are saved on the device; each test starts from the defaults.
   localStorage.clear();
   reloadSettings();
+  reloadUnlocks();
   vi.unstubAllGlobals();
   installBrowserStubs();
 });

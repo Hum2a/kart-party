@@ -6,7 +6,14 @@
  * so the music can be tested without audio.
  */
 export type ThemeId =
-  "menu" | "party-ring-v1" | "parkside-v1" | "harbour-v1" | "podium";
+  | "menu"
+  | "party-ring-v1"
+  | "parkside-v1"
+  | "harbour-v1"
+  | "city-v1"
+  | "summit-v1"
+  | "beach-v1"
+  | "podium";
 
 const scales = {
   major: [0, 2, 4, 5, 7, 9, 11],
@@ -133,6 +140,81 @@ export const themes: Record<ThemeId, Theme> = {
       kick: "x..x..x.x..x..x.",
       snare: "....x.......x...",
       hat: "xxxxxxxxxxxxxxxx",
+    },
+  },
+  "city-v1": {
+    id: "city-v1",
+    name: "Neon Grid",
+    bpm: 152,
+    root: 43,
+    scale: "dorian",
+    progression: [0, 0, 6, 3, 0, 0, 5, 4],
+    bass: "R R 8 R . R 5 8",
+    arp: "0 2 3 2 1 2 3 2 0 2 3 2 1 3 2 1",
+    lead: [
+      "0 . 2 3 . 4 . 2",
+      "4 - 3 . 2 . 0 .",
+      "6 . 6 5 4 . 3 .",
+      "4 - - . . 2 3 4",
+      "7 . 6 . 4 . 6 7",
+      "8 - 7 . 6 4 . .",
+      "5 . 4 3 2 . 3 4",
+      "0 - - - . . . .",
+    ],
+    drums: {
+      kick: "x...x...x...x.x.",
+      snare: "....x.......x...",
+      hat: ".x.x.x.x.x.x.xxx",
+    },
+  },
+  "summit-v1": {
+    id: "summit-v1",
+    name: "Thin Air",
+    bpm: 142,
+    root: 45,
+    scale: "mixolydian",
+    progression: [0, 6, 3, 0, 0, 6, 4, 4],
+    bass: "R . R 5 . 5 R .",
+    arp: "0 1 2 3 2 1 0 1 0 1 2 3 2 1 2 3",
+    lead: [
+      "4 . . 3 4 . 6 .",
+      "7 - 6 . 4 . . .",
+      "3 . 3 4 6 . 4 3",
+      "4 - - - . . 2 3",
+      "4 . . 3 4 . 7 .",
+      "9 - 8 . 7 . 6 .",
+      "4 . 6 . 7 . 8 .",
+      "7 - - - . . . .",
+    ],
+    drums: {
+      kick: "x.....x...x.....",
+      snare: "....x.......x.x.",
+      hat: "x.xxx.xxx.xxx.xx",
+    },
+  },
+  "beach-v1": {
+    id: "beach-v1",
+    name: "Boardwalk Breeze",
+    bpm: 128,
+    root: 50,
+    scale: "major",
+    progression: [0, 5, 3, 4, 0, 5, 1, 4],
+    bass: "R . . R 5 . R .",
+    arp: "0 . 1 2 . 1 2 3 0 . 1 2 . 3 2 1",
+    lead: [
+      "2 . 4 . 4 5 4 .",
+      "2 . 0 . -1 . 0 .",
+      "3 . 5 . 5 6 5 .",
+      "4 - - . . . . .",
+      "7 . 6 . 4 . 2 .",
+      "5 . 4 . 2 . 0 .",
+      "1 . 2 . 3 . 4 .",
+      "0 - - - . . . .",
+    ],
+    drums: {
+      kick: "x.....x...x.....",
+      snare: "....x.......x...",
+      hat: "x.x.x.xxx.x.x.xx",
     },
   },
   podium: {

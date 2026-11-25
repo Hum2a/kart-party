@@ -8,7 +8,14 @@ export type CourseFeature = {
   heading: number;
   width: number;
   length: number;
+  /** Moving hazards: metres each side of centre (default 1.5) and how slowly they swing. */
+  sway?: number;
+  swayMs?: number;
+  /** Jump pads: a ramp that throws harder (default 1). */
+  lift?: number;
 };
+/** A boost pad longer than this is a lane: it keeps topping the boost up while you stay on it. */
+export const boostLaneLength = 8;
 export type CourseSettings = { boosts: boolean; ramps: boolean; hazards: boolean };
 export const defaultCourseSettings: CourseSettings = {
   boosts: true,
@@ -39,7 +46,10 @@ export const ringCourse: readonly CourseFeature[] = [
 
 /** Moving hazard position is a pure function of active simulation time. */
 export function courseFeaturePose(feature: CourseFeature, nowMs: number) {
-  const offset = feature.kind === "hazard" ? Math.sin(nowMs / 900) * 1.5 : 0;
+  const offset =
+    feature.kind === "hazard"
+      ? Math.sin(nowMs / (feature.swayMs ?? 900)) * (feature.sway ?? 1.5)
+      : 0;
   return {
     x: feature.x - Math.sin(feature.heading) * offset,
     z: feature.z + Math.cos(feature.heading) * offset,
@@ -117,7 +127,12 @@ export function stepCourse(
     const speed =
       next.vx * Math.cos(feature.heading) + next.vz * Math.sin(feature.heading);
     if (feature.kind !== "hazard" && (speed < 3 || !input.gas || input.brake)) continue;
-    cooldowns[feature.id] = feature.kind === "hazard" ? 1500 : 1000;
+    cooldowns[feature.id] =
+      feature.kind === "hazard"
+        ? 1500
+        : feature.kind === "boost" && feature.length > boostLaneLength
+          ? 300
+          : 1000;
     next.trackNotice = feature.kind;
     if (feature.kind === "boost") {
       next.boostMs = Math.max(next.boostMs, 900);
@@ -125,7 +140,8 @@ export function stepCourse(
     }
     if (feature.kind === "ramp") {
       next.height = 0.05;
-      next.verticalSpeed = Math.min(6, 2 + speed * 0.1);
+      const lift = feature.lift ?? 1;
+      next.verticalSpeed = Math.min(6 * lift, (2 + speed * 0.1) * lift);
       next.driftMs = 0;
       next.wasDrifting = false;
       next.driftSide = 0;
